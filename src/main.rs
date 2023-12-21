@@ -1,4 +1,5 @@
 use sdl2::event::Event;
+use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::Keycode;
 use sdl2::mixer;
 use sdl2::pixels::Color;
@@ -138,6 +139,18 @@ fn load_resources<'a>(
         chunks: HashMap::new(),
     };
 
+    let image_paths = ["numbers.bmp"];
+    for path in image_paths {
+        let full_path = "resources/image/".to_string() + path;
+        let temp_surface = sdl2::surface::Surface::load_bmp(Path::new(&full_path)).unwrap();
+        let texture = texture_creator
+            .create_texture_from_surface(&temp_surface)
+            .expect(&format!("cannot load image: {}", path));
+
+        let image = Image::new(texture);
+        resources.images.insert(path.to_string(), image);
+    }
+
     let sound_paths = ["crash.wav"];
     for path in sound_paths {
         let full_path = "resources/sound/".to_string() + path;
@@ -234,6 +247,48 @@ fn render(
             }
         }
     }
+
+    if game.is_over {
+        canvas.set_draw_color(Color::RGBA(255, 0, 0, 128));
+        canvas.fill_rect(Rect::new(0, 0, SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32))?;
+    }
+
+    canvas.set_draw_color(Color::RGB(0xd2, 0xcb, 0xbd));
+    canvas.fill_rect(Rect::new(
+        INFO_X,
+        0,
+        INFO_WIDTH as u32,
+        SCREEN_HEIGHT as u32,
+    ))?;
+    println!("{} {} {} {}", INFO_X, 0, INFO_WIDTH, SCREEN_HEIGHT);
+
+    let radius = 30;
+    let circle_x = (INFO_X + INFO_WIDTH / 2) as i16;
+    let circle_y = 270;
+    if game.player.air > 0 {
+        canvas.filled_pie(
+            circle_x,
+            circle_y,
+            radius as i16,
+            -90,
+            -90 + (360.0 * (game.player.air as f32 / AIR_MAX as f32)) as i16,
+            Color::RGB(0x01, 0x2f, 0xd0),
+        )?;
+    }
+    canvas.filled_circle(
+        circle_x,
+        circle_y,
+        (radius / 2 - 1) as i16,
+        Color::RGB(0xd3, 0xe3, 0xe9),
+    )?;
+
+    render_number(
+        canvas,
+        resources,
+        INFO_X + 50,
+        0,
+        format!("{0: >4}", game.get_depth()),
+    );
 
     canvas.present();
 

@@ -2,15 +2,17 @@ use rand::prelude::*;
 use std::{collections::HashMap, time};
 
 pub const CELL_SIZE: i32 = 40;
-pub const SCREEN_WIDTH: i32 = CELL_SIZE * CELLS_X_LEN;
+pub const INFO_WIDTH: i32 = 100;
+pub const INFO_X: i32 = CELL_SIZE * CELLS_X_LEN;
+pub const SCREEN_WIDTH: i32 = CELL_SIZE * CELLS_X_LEN + INFO_WIDTH;
 pub const SCREEN_HEIGHT: i32 = CELL_SIZE * 12;
 pub const CELLS_X_LEN: i32 = 9;
 pub const CELLS_X_MIN: i32 = 0;
 pub const CELLS_X_MAX: i32 = CELLS_X_LEN - 1;
-pub const CELLS_Y_LEN: i32 = 30;
+pub const CELLS_Y_LEN: i32 = 100;
 pub const CELLS_Y_MIN: i32 = 0;
 pub const CELLS_Y_MAX: i32 = CELLS_Y_LEN - 1;
-pub const AIR_MAX: i32 = 100;
+pub const AIR_MAX: i32 = 3000;
 pub const WALK_FRAMES: i32 = 3;
 pub const FALL_FRAMES: i32 = 3;
 
@@ -135,10 +137,6 @@ impl Player {
             state: PlayerState::Standing,
         };
         player
-    }
-
-    pub fn do_move(&mut self) {
-        self.air -= 1;
     }
 }
 
@@ -285,6 +283,7 @@ impl Game {
             }
         }
 
+        self.player.air -= 1;
         if self.player.air <= 0 {
             self.is_over = true;
             self.requested_sounds.push("crash.wav");
@@ -354,6 +353,10 @@ impl Game {
 
     fn cell<'a>(&'a self, x: i32, y: i32) -> &'a Cell {
         &self.cells[x as usize][y as usize]
+    }
+
+    pub fn get_depth(&self) -> i32 {
+        self.player.p.y
     }
 }
 
