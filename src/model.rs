@@ -12,7 +12,7 @@ pub const CELLS_Y_MIN: i32 = 0;
 pub const CELLS_Y_MAX: i32 = CELLS_Y_LEN - 1;
 pub const AIR_MAX: i32 = 100;
 pub const WALK_FRAMES: i32 = 3;
-pub const FALL_FRAMES: i32 = 15;
+pub const FALL_FRAMES: i32 = 3;
 
 pub enum Command {
     None,
@@ -72,17 +72,19 @@ pub enum CellState {
 #[derive(Clone, Copy)]
 pub struct Cell {
     pub cell_type: CellType,
+    pub leader: Option<Point>,
 }
 
 impl Cell {
     fn new() -> Self {
         Cell {
             cell_type: CellType::None,
+            leader: None,
         }
     }
 }
 
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub struct Point {
     pub x: i32,
     pub y: i32,
@@ -158,7 +160,8 @@ impl Game {
             .duration_since(time::UNIX_EPOCH)
             .expect("SystemTime before UNIX EPOCH!")
             .as_secs();
-        let rng = StdRng::seed_from_u64(timestamp);
+        // let rng = StdRng::seed_from_u64(timestamp);
+        let rng = StdRng::seed_from_u64(0);
 
         let mut game = Game {
             rng: rng,
@@ -251,8 +254,34 @@ impl Game {
                 }
             }
             Command::Dig => {
-                self.cells[self.player.p.y as usize + 1][self.player.p.x as usize].cell_type =
-                    CellType::None;
+                match self.cells[self.player.p.y as usize + 1][self.player.p.x as usize].cell_type {
+                    CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
+                        self.set_leaders();
+
+                        let leader = self.cells[self.player.p.y as usize + 1]
+                            [self.player.p.x as usize]
+                            .leader;
+                        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
+                            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                                if self.cells[y as usize][x as usize].leader == leader {
+                                    self.cells[y as usize][x as usize].cell_type = CellType::None;
+                                }
+                            }
+                        }
+
+                        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
+                            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                                if let Some(p) = self.cells[y as usize][x as usize].leader {
+                                    print!("({} {}) ", p.x, p.y);
+                                } else {
+                                    print!("(   ) ");
+                                }
+                            }
+                            println!("");
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
 
@@ -268,6 +297,63 @@ impl Game {
 
         self.frame += 1;
         self.score = self.frame / 30;
+    }
+
+    fn set_leaders(&mut self) {
+        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
+            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                match self.cells[y as usize][x as usize].cell_type {
+                    CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
+                        match self.cells[y as usize][x as usize].leader {
+                            None => {
+                                let point = Point::new(x, y);
+                                self.set_leader(x, y, point);
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    fn set_leader(&mut self, x: i32, y: i32, p: Point) {
+        // let cell = &mut self.cells[y as usize][x as usize];
+        let cell_type = self.cells[y as usize][x as usize].cell_type;
+        self.cells[y as usize][x as usize].leader = Some(p);
+        if x < CELLS_X_MAX
+            && self.cells[y as usize][x as usize + 1].cell_type
+                == self.cells[y as usize][x as usize].cell_type
+            && self.cells[y as usize][x as usize + 1].leader == None
+        {
+            self.set_leader(x + 1, y, p);
+        }
+        if x > CELLS_X_MIN
+            && self.cells[y as usize][x as usize - 1].cell_type
+                == self.cells[y as usize][x as usize].cell_type
+            && self.cells[y as usize][x as usize - 1].leader == None
+        {
+            self.set_leader(x - 1, y, p);
+        }
+        if y > CELLS_Y_MIN
+            && self.cells[y as usize - 1][x as usize].cell_type
+                == self.cells[y as usize][x as usize].cell_type
+            && self.cells[y as usize - 1][x as usize].leader == None
+        {
+            self.set_leader(x, y - 1, p);
+        }
+        if y < CELLS_Y_MAX
+            && self.cells[y as usize + 1][x as usize].cell_type
+                == self.cells[y as usize][x as usize].cell_type
+            && self.cells[y as usize + 1][x as usize].leader == None
+        {
+            self.set_leader(x, y + 1, p);
+        }
+    }
+
+    fn cell<'a>(&'a self, x: i32, y: i32) -> &'a Cell {
+        &self.cells[x as usize][y as usize]
     }
 }
 

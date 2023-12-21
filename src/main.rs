@@ -93,8 +93,8 @@ pub fn main() -> Result<(), String> {
                     command = match code {
                         Keycode::Left => Command::Left,
                         Keycode::Right => Command::Right,
-                        Keycode::LShift => Command::Dig,
-                        Keycode::RShift => Command::Dig,
+                        Keycode::Down => Command::Dig,
+                        // Keycode::RShift => Command::Dig,
                         _ => Command::None,
                     };
                 }
