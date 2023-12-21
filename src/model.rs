@@ -51,6 +51,18 @@ pub enum CellType {
     Blue,
 }
 
+impl CellType {
+    fn from_u32(n: u32) -> Self {
+        match n % 4 {
+            0 => CellType::Red,
+            1 => CellType::Yellow,
+            2 => CellType::Green,
+            3 => CellType::Blue,
+            _ => panic!(),
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum CellState {
     Normal,
@@ -159,24 +171,11 @@ impl Game {
             camera_y: 0,
         };
 
-        game.cells[0][0] = Cell {
-            cell_type: CellType::Red,
-        };
-        game.cells[1][0] = Cell {
-            cell_type: CellType::Yellow,
-        };
-        game.cells[2][0] = Cell {
-            cell_type: CellType::Green,
-        };
-        game.cells[3][0] = Cell {
-            cell_type: CellType::Blue,
-        };
-        game.cells[4][0] = Cell {
-            cell_type: CellType::Box,
-        };
-
-        for x in CELLS_X_MIN..=CELLS_X_MAX {
-            game.cells[6][x as usize].cell_type = CellType::Red;
+        for y in 6..=CELLS_Y_MAX {
+            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                game.cells[y as usize][x as usize].cell_type =
+                    CellType::from_u32(game.rng.gen::<u32>());
+            }
         }
 
         for y in 0..7 {
