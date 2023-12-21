@@ -193,6 +193,7 @@ impl Game {
         }
 
         println!("{:?}", self.player.state);
+
         if self.cells[self.player.p.y as usize + 1][self.player.p.x as usize].cell_type
             == CellType::None
             && self.player.state != PlayerState::Falling
@@ -211,10 +212,25 @@ impl Game {
             }
         }
 
+        if self.player.state == PlayerState::Walking {
+            self.player.walking_frames += 1;
+            if self.player.walking_frames >= WALK_FRAMES {
+                if self.player.direction == Direction::Left {
+                    self.player.p.x -= 1;
+                } else {
+                    self.player.p.x += 1;
+                }
+                self.player.state = PlayerState::Standing;
+            }
+        }
+
         match command {
             Command::None => {}
             Command::Left => {
-                if self.player.p.x > CELLS_X_MIN {
+                if self.player.p.x > CELLS_X_MIN
+                    && self.cells[self.player.p.y as usize][self.player.p.x as usize - 1].cell_type
+                        == CellType::None
+                {
                     if self.player.state == PlayerState::Standing {
                         self.player.state = PlayerState::Walking;
                         self.player.direction = Direction::Left;
@@ -223,7 +239,10 @@ impl Game {
                 }
             }
             Command::Right => {
-                if self.player.p.x < CELLS_X_MAX {
+                if self.player.p.x < CELLS_X_MAX
+                    && self.cells[self.player.p.y as usize][self.player.p.x as usize + 1].cell_type
+                        == CellType::None
+                {
                     if self.player.state == PlayerState::Standing {
                         self.player.state = PlayerState::Walking;
                         self.player.direction = Direction::Right;
@@ -234,18 +253,6 @@ impl Game {
             Command::Dig => {
                 self.cells[self.player.p.y as usize + 1][self.player.p.x as usize].cell_type =
                     CellType::None;
-            }
-        }
-
-        if self.player.state == PlayerState::Walking {
-            self.player.walking_frames += 1;
-            if self.player.walking_frames >= WALK_FRAMES {
-                if self.player.direction == Direction::Left {
-                    self.player.p.x -= 1;
-                } else {
-                    self.player.p.x += 1;
-                }
-                self.player.state = PlayerState::Standing;
             }
         }
 
