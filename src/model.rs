@@ -8,7 +8,7 @@ pub const SCREEN_WIDTH: i32 = CELL_SIZE * CELLS_X_LEN + INFO_WIDTH;
 pub const SCREEN_HEIGHT: i32 = CELL_SIZE * 12;
 
 pub const UP_SPACE_HEIGHT: i32 = 6; // 初期状態の上の空間の高さ
-pub const NORMAL_BLOCKS_HEIGHT: i32 = 100; // 通常ブロックがある空間の高さ
+pub const NORMAL_BLOCKS_HEIGHT: i32 = 30; // 通常ブロックがある空間の高さ
 pub const CLEAR_BLOCKS_HEIGHT: i32 = 7; // 底にあるクリアブロックの高さ
 pub const CELLS_X_LEN: i32 = 9;
 pub const CELLS_X_MIN: i32 = 0;
@@ -319,8 +319,13 @@ impl Game {
     }
 
     fn break_cell(&mut self, cell_x: i32, cell_y: i32) {
+        if self.cell(cell_x, cell_y).color == BlockColor::Clear {
+            self.is_clear = true;
+        }
+
         self.set_leaders();
 
+        // つながっているブロックを消去
         let leader = self.cell(cell_x, cell_y).leader;
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
@@ -330,30 +335,27 @@ impl Game {
             }
         }
 
-        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
-            for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if let Some(p) = self.cell(x, y).leader {
-                    print!("({} {}) ", p.x, p.y);
-                } else {
-                    print!("(   ) ");
-                }
-            }
-            println!("");
-        }
+        // for y in CELLS_Y_MIN..=CELLS_Y_MAX {
+        //     for x in CELLS_X_MIN..=CELLS_X_MAX {
+        //         if let Some(p) = self.cell(x, y).leader {
+        //             print!("({} {}) ", p.x, p.y);
+        //         } else {
+        //             print!("(   ) ");
+        //         }
+        //     }
+        //     println!("");
+        // }
     }
 
+    // 全ブロックのつながりを判定
     fn set_leaders(&mut self) {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                match self.cell(x, y).cell_type {
-                    CellType::Block => match self.cell(x, y).leader {
-                        None => {
-                            let point = Point::new(x, y);
-                            self.set_leader(x, y, point);
-                        }
-                        _ => {}
-                    },
-                    _ => {}
+                if self.cell(x, y).cell_type == CellType::Block {
+                    if self.cell(x, y).leader == None {
+                        let point = Point::new(x, y);
+                        self.set_leader(x, y, point);
+                    }
                 }
             }
         }
