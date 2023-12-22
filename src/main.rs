@@ -63,9 +63,9 @@ pub fn main() -> Result<(), String> {
     let mut game = Game::new();
 
     println!("Keys:");
-    println!("    Left  : Move player left");
-    println!("    Right : Move player right");
-    println!("    Shift : Dig");
+    println!("    Left  : Move player left or dig");
+    println!("    Right : Move player right or dig");
+    println!("    Down  : Dig");
     println!("    Space : Restart when game over");
 
     'running: loop {
@@ -260,7 +260,6 @@ fn render(
         INFO_WIDTH as u32,
         SCREEN_HEIGHT as u32,
     ))?;
-    println!("{} {} {} {}", INFO_X, 0, INFO_WIDTH, SCREEN_HEIGHT);
 
     let radius = 30;
     let circle_x = (INFO_X + INFO_WIDTH / 2) as i16;

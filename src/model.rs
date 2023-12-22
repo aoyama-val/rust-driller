@@ -193,7 +193,7 @@ impl Game {
             return;
         }
 
-        println!("{:?}", self.player.state);
+        // println!("{:?}", self.player.state);
 
         if self.cells[self.player.p.y as usize + 1][self.player.p.x as usize].cell_type
             == CellType::None
@@ -228,55 +228,51 @@ impl Game {
         match command {
             Command::None => {}
             Command::Left => {
-                if self.player.p.x > CELLS_X_MIN
-                    && self.cells[self.player.p.y as usize][self.player.p.x as usize - 1].cell_type
-                        == CellType::None
-                {
-                    if self.player.state == PlayerState::Standing {
-                        self.player.state = PlayerState::Walking;
-                        self.player.direction = Direction::Left;
-                        self.player.walking_frames = 0;
+                println!("left");
+                if self.player.state == PlayerState::Standing && self.player.p.x > CELLS_X_MIN {
+                    match self.cells[self.player.p.y as usize][self.player.p.x as usize - 1]
+                        .cell_type
+                    {
+                        CellType::None | CellType::Air => {
+                            self.player.state = PlayerState::Walking;
+                            self.player.direction = Direction::Left;
+                            self.player.walking_frames = 0;
+                        }
+                        CellType::Red
+                        | CellType::Yellow
+                        | CellType::Green
+                        | CellType::Blue
+                        | CellType::Box => {
+                            self.break_cell(self.player.p.x - 1, self.player.p.y);
+                        }
                     }
                 }
             }
             Command::Right => {
-                if self.player.p.x < CELLS_X_MAX
-                    && self.cells[self.player.p.y as usize][self.player.p.x as usize + 1].cell_type
-                        == CellType::None
-                {
-                    if self.player.state == PlayerState::Standing {
-                        self.player.state = PlayerState::Walking;
-                        self.player.direction = Direction::Right;
-                        self.player.walking_frames = 0;
+                println!("right");
+                if self.player.state == PlayerState::Standing && self.player.p.x < CELLS_X_MAX {
+                    match self.cells[self.player.p.y as usize][self.player.p.x as usize + 1]
+                        .cell_type
+                    {
+                        CellType::None | CellType::Air => {
+                            self.player.state = PlayerState::Walking;
+                            self.player.direction = Direction::Right;
+                            self.player.walking_frames = 0;
+                        }
+                        CellType::Red
+                        | CellType::Yellow
+                        | CellType::Green
+                        | CellType::Blue
+                        | CellType::Box => {
+                            self.break_cell(self.player.p.x + 1, self.player.p.y);
+                        }
                     }
                 }
             }
             Command::Dig => {
                 match self.cells[self.player.p.y as usize + 1][self.player.p.x as usize].cell_type {
                     CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
-                        self.set_leaders();
-
-                        let leader = self.cells[self.player.p.y as usize + 1]
-                            [self.player.p.x as usize]
-                            .leader;
-                        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
-                            for x in CELLS_X_MIN..=CELLS_X_MAX {
-                                if self.cells[y as usize][x as usize].leader == leader {
-                                    self.cells[y as usize][x as usize].cell_type = CellType::None;
-                                }
-                            }
-                        }
-
-                        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
-                            for x in CELLS_X_MIN..=CELLS_X_MAX {
-                                if let Some(p) = self.cells[y as usize][x as usize].leader {
-                                    print!("({} {}) ", p.x, p.y);
-                                } else {
-                                    print!("(   ) ");
-                                }
-                            }
-                            println!("");
-                        }
+                        self.break_cell(self.player.p.x, self.player.p.y + 1);
                     }
                     _ => {}
                 }
@@ -296,6 +292,30 @@ impl Game {
 
         self.frame += 1;
         self.score = self.frame / 30;
+    }
+
+    fn break_cell(&mut self, cell_x: i32, cell_y: i32) {
+        self.set_leaders();
+
+        let leader = self.cells[cell_y as usize][cell_x as usize].leader;
+        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
+            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                if self.cells[y as usize][x as usize].leader == leader {
+                    self.cells[y as usize][x as usize].cell_type = CellType::None;
+                }
+            }
+        }
+
+        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
+            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                if let Some(p) = self.cells[y as usize][x as usize].leader {
+                    print!("({} {}) ", p.x, p.y);
+                } else {
+                    print!("(   ) ");
+                }
+            }
+            println!("");
+        }
     }
 
     fn set_leaders(&mut self) {
