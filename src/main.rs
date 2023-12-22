@@ -63,9 +63,10 @@ pub fn main() -> Result<(), String> {
     let mut game = Game::new();
 
     println!("Keys:");
-    println!("    Left  : Move player left or dig");
-    println!("    Right : Move player right or dig");
-    println!("    Down  : Dig");
+    println!("    Left  : Move player or dig left");
+    println!("    Right : Move player or dig right");
+    println!("    Down  : Dig down");
+    println!("    Up    : Dig up");
     println!("    Space : Restart when game over");
 
     'running: loop {
@@ -94,8 +95,8 @@ pub fn main() -> Result<(), String> {
                     command = match code {
                         Keycode::Left => Command::Left,
                         Keycode::Right => Command::Right,
-                        Keycode::Down => Command::Dig,
-                        // Keycode::RShift => Command::Dig,
+                        Keycode::Down => Command::Down,
+                        Keycode::Up => Command::Up,
                         _ => Command::None,
                     };
                 }

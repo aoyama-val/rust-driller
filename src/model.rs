@@ -20,7 +20,8 @@ pub enum Command {
     None,
     Left,
     Right,
-    Dig,
+    Down,
+    Up,
 }
 
 #[derive(Clone, Eq, PartialEq)]
@@ -269,10 +270,18 @@ impl Game {
                     }
                 }
             }
-            Command::Dig => {
+            Command::Down => {
                 match self.cells[self.player.p.y as usize + 1][self.player.p.x as usize].cell_type {
                     CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
                         self.break_cell(self.player.p.x, self.player.p.y + 1);
+                    }
+                    _ => {}
+                }
+            }
+            Command::Up => {
+                match self.cells[self.player.p.y as usize - 1][self.player.p.x as usize].cell_type {
+                    CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
+                        self.break_cell(self.player.p.x, self.player.p.y - 1);
                     }
                     _ => {}
                 }
