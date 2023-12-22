@@ -1,22 +1,26 @@
 use rand::prelude::*;
-use std::{collections::HashMap, time};
+use std::time;
 
 pub const CELL_SIZE: i32 = 40;
 pub const INFO_WIDTH: i32 = 100;
 pub const INFO_X: i32 = CELL_SIZE * CELLS_X_LEN;
 pub const SCREEN_WIDTH: i32 = CELL_SIZE * CELLS_X_LEN + INFO_WIDTH;
 pub const SCREEN_HEIGHT: i32 = CELL_SIZE * 12;
+
+pub const UP_SPACE_HEIGHT: i32 = 6; // 初期状態の上の空間の高さ
+pub const NORMAL_BLOCKS_HEIGHT: i32 = 100; // 通常ブロックがある空間の高さ
+pub const CLEAR_BLOCKS_HEIGHT: i32 = 7; // 底にあるクリアブロックの高さ
 pub const CELLS_X_LEN: i32 = 9;
 pub const CELLS_X_MIN: i32 = 0;
 pub const CELLS_X_MAX: i32 = CELLS_X_LEN - 1;
-pub const CELLS_Y_LEN: i32 = 100;
+pub const CELLS_Y_LEN: i32 = UP_SPACE_HEIGHT + NORMAL_BLOCKS_HEIGHT + CLEAR_BLOCKS_HEIGHT;
 pub const CELLS_Y_MIN: i32 = 0;
 pub const CELLS_Y_MAX: i32 = CELLS_Y_LEN - 1;
-pub const UP_SPACE_COUNT: i32 = 5; // 初期状態の上の空間のサイズ
-pub const CLEAR_BLOCK_COUNT: i32 = 7;
+
 pub const AIR_MAX: i32 = 3000;
-pub const WALK_FRAMES: i32 = 3;
-pub const FALL_FRAMES: i32 = 3;
+
+pub const WALK_FRAMES: i32 = 3; // 1マス歩くのにかかるフレーム数
+pub const FALL_FRAMES: i32 = 3; // 1マス落ちるのにかかるフレーム数
 
 pub enum Command {
     None,
@@ -45,7 +49,7 @@ impl Direction {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum CellType {
     None,
     Air,
@@ -178,18 +182,27 @@ impl Game {
         };
 
         // ランダムにセルを敷き詰める
-        for y in 6..=CELLS_Y_MAX {
+        for y in UP_SPACE_HEIGHT..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
                 game.cell_mut(x, y).cell_type = CellType::from_u32(game.rng.gen::<u32>());
             }
         }
 
         // クリアブロックを配置
-        for y in 0..CLEAR_BLOCK_COUNT {
+        for y in 0..CLEAR_BLOCKS_HEIGHT {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
                 game.cell_mut(x, CELLS_Y_MAX - y).cell_type = CellType::Red;
             }
         }
+
+        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
+            print!("{}: ", y);
+            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                print!("{:?} ", game.cell(x, y).cell_type);
+            }
+            print!("\n");
+        }
+        println!("{}", game.player.p.y);
 
         game
     }
@@ -380,7 +393,7 @@ impl Game {
     }
 
     pub fn get_depth(&self) -> i32 {
-        self.player.p.y
+        std::cmp::max(self.player.p.y - UP_SPACE_HEIGHT + 1, 0)
     }
 }
 
