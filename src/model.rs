@@ -12,6 +12,8 @@ pub const CELLS_X_MAX: i32 = CELLS_X_LEN - 1;
 pub const CELLS_Y_LEN: i32 = 100;
 pub const CELLS_Y_MIN: i32 = 0;
 pub const CELLS_Y_MAX: i32 = CELLS_Y_LEN - 1;
+pub const UP_SPACE_COUNT: i32 = 5; // 初期状態の上の空間のサイズ
+pub const CLEAR_BLOCK_COUNT: i32 = 7;
 pub const AIR_MAX: i32 = 3000;
 pub const WALK_FRAMES: i32 = 3;
 pub const FALL_FRAMES: i32 = 3;
@@ -178,15 +180,14 @@ impl Game {
         // ランダムにセルを敷き詰める
         for y in 6..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                game.cells[y as usize][x as usize].cell_type =
-                    CellType::from_u32(game.rng.gen::<u32>());
+                game.cell_mut(x, y).cell_type = CellType::from_u32(game.rng.gen::<u32>());
             }
         }
 
         // クリアブロックを配置
-        for y in 0..7 {
+        for y in 0..CLEAR_BLOCK_COUNT {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                game.cells[CELLS_Y_MAX as usize - y as usize][x as usize].cell_type = CellType::Red;
+                game.cell_mut(x, CELLS_Y_MAX - y).cell_type = CellType::Red;
             }
         }
 
@@ -200,8 +201,7 @@ impl Game {
 
         // println!("{:?}", self.player.state);
 
-        if self.cells[self.player.p.y as usize + 1][self.player.p.x as usize].cell_type
-            == CellType::None
+        if self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::None
             && self.player.state != PlayerState::Falling
         {
             self.player.state = PlayerState::Falling;
@@ -235,9 +235,7 @@ impl Game {
             Command::Left => {
                 println!("left");
                 if self.player.state == PlayerState::Standing && self.player.p.x > CELLS_X_MIN {
-                    match self.cells[self.player.p.y as usize][self.player.p.x as usize - 1]
-                        .cell_type
-                    {
+                    match self.cell(self.player.p.x - 1, self.player.p.y).cell_type {
                         CellType::None | CellType::Air => {
                             self.player.state = PlayerState::Walking;
                             self.player.direction = Direction::Left;
@@ -256,9 +254,7 @@ impl Game {
             Command::Right => {
                 println!("right");
                 if self.player.state == PlayerState::Standing && self.player.p.x < CELLS_X_MAX {
-                    match self.cells[self.player.p.y as usize][self.player.p.x as usize + 1]
-                        .cell_type
-                    {
+                    match self.cell(self.player.p.x + 1, self.player.p.y).cell_type {
                         CellType::None | CellType::Air => {
                             self.player.state = PlayerState::Walking;
                             self.player.direction = Direction::Right;
@@ -274,22 +270,18 @@ impl Game {
                     }
                 }
             }
-            Command::Down => {
-                match self.cells[self.player.p.y as usize + 1][self.player.p.x as usize].cell_type {
-                    CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
-                        self.break_cell(self.player.p.x, self.player.p.y + 1);
-                    }
-                    _ => {}
+            Command::Down => match self.cell(self.player.p.x, self.player.p.y + 1).cell_type {
+                CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
+                    self.break_cell(self.player.p.x, self.player.p.y + 1);
                 }
-            }
-            Command::Up => {
-                match self.cells[self.player.p.y as usize - 1][self.player.p.x as usize].cell_type {
-                    CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
-                        self.break_cell(self.player.p.x, self.player.p.y - 1);
-                    }
-                    _ => {}
+                _ => {}
+            },
+            Command::Up => match self.cell(self.player.p.x, self.player.p.y - 1).cell_type {
+                CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
+                    self.break_cell(self.player.p.x, self.player.p.y - 1);
                 }
-            }
+                _ => {}
+            },
         }
 
         self.player.air -= 1;
@@ -303,9 +295,6 @@ impl Game {
         }
 
         self.camera_y = self.player.p.y - 5;
-        if self.camera_y > CELLS_Y_LEN - 7 {
-            self.camera_y > CELLS_Y_LEN - 7;
-        }
 
         self.frame += 1;
         self.score = self.frame / 30;
@@ -314,18 +303,18 @@ impl Game {
     fn break_cell(&mut self, cell_x: i32, cell_y: i32) {
         self.set_leaders();
 
-        let leader = self.cells[cell_y as usize][cell_x as usize].leader;
+        let leader = self.cell(cell_x, cell_y).leader;
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if self.cells[y as usize][x as usize].leader == leader {
-                    self.cells[y as usize][x as usize].cell_type = CellType::None;
+                if self.cell(x, y).leader == leader {
+                    self.cell_mut(x, y).cell_type = CellType::None;
                 }
             }
         }
 
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if let Some(p) = self.cells[y as usize][x as usize].leader {
+                if let Some(p) = self.cell(x, y).leader {
                     print!("({} {}) ", p.x, p.y);
                 } else {
                     print!("(   ) ");
@@ -338,9 +327,9 @@ impl Game {
     fn set_leaders(&mut self) {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                match self.cells[y as usize][x as usize].cell_type {
+                match self.cell(x, y).cell_type {
                     CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
-                        match self.cells[y as usize][x as usize].leader {
+                        match self.cell(x, y).leader {
                             None => {
                                 let point = Point::new(x, y);
                                 self.set_leader(x, y, point);
@@ -355,41 +344,39 @@ impl Game {
     }
 
     fn set_leader(&mut self, x: i32, y: i32, p: Point) {
-        // let cell = &mut self.cells[y as usize][x as usize];
-        let cell_type = self.cells[y as usize][x as usize].cell_type;
-        self.cells[y as usize][x as usize].leader = Some(p);
+        self.cell_mut(x, y).leader = Some(p);
         if x < CELLS_X_MAX
-            && self.cells[y as usize][x as usize + 1].cell_type
-                == self.cells[y as usize][x as usize].cell_type
-            && self.cells[y as usize][x as usize + 1].leader == None
+            && self.cell(x + 1, y).cell_type == self.cell(x, y).cell_type
+            && self.cell(x + 1, y).leader == None
         {
             self.set_leader(x + 1, y, p);
         }
         if x > CELLS_X_MIN
-            && self.cells[y as usize][x as usize - 1].cell_type
-                == self.cells[y as usize][x as usize].cell_type
-            && self.cells[y as usize][x as usize - 1].leader == None
+            && self.cell(x - 1, y).cell_type == self.cell(x, y).cell_type
+            && self.cell(x - 1, y).leader == None
         {
             self.set_leader(x - 1, y, p);
         }
         if y > CELLS_Y_MIN
-            && self.cells[y as usize - 1][x as usize].cell_type
-                == self.cells[y as usize][x as usize].cell_type
-            && self.cells[y as usize - 1][x as usize].leader == None
+            && self.cell(x, y - 1).cell_type == self.cell(x, y).cell_type
+            && self.cell(x, y - 1).leader == None
         {
             self.set_leader(x, y - 1, p);
         }
         if y < CELLS_Y_MAX
-            && self.cells[y as usize + 1][x as usize].cell_type
-                == self.cells[y as usize][x as usize].cell_type
-            && self.cells[y as usize + 1][x as usize].leader == None
+            && self.cell(x, y + 1).cell_type == self.cell(x, y).cell_type
+            && self.cell(x, y + 1).leader == None
         {
             self.set_leader(x, y + 1, p);
         }
     }
 
     fn cell<'a>(&'a self, x: i32, y: i32) -> &'a Cell {
-        &self.cells[x as usize][y as usize]
+        &self.cells[y as usize][x as usize]
+    }
+
+    fn cell_mut<'a>(&'a mut self, x: i32, y: i32) -> &'a mut Cell {
+        &mut self.cells[y as usize][x as usize]
     }
 
     pub fn get_depth(&self) -> i32 {
