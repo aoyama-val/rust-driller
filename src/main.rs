@@ -194,9 +194,6 @@ fn render(
     // render cells
     for x in CELLS_X_MIN..=CELLS_X_MAX {
         for y in 0..12 {
-            if y > CELLS_Y_MAX {
-                break;
-            }
             match game.cell(x, game.camera_y + y).cell_type {
                 CellType::None => {}
                 CellType::Air => {}
@@ -229,16 +226,6 @@ fn render(
         }
     }
 
-    if game.is_over {
-        canvas.set_draw_color(Color::RGBA(255, 0, 0, 128));
-        canvas.fill_rect(Rect::new(0, 0, SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32))?;
-    }
-
-    if game.is_clear {
-        canvas.set_draw_color(Color::RGBA(255, 255, 0, 128));
-        canvas.fill_rect(Rect::new(0, 0, SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32))?;
-    }
-
     canvas.set_draw_color(Color::RGB(0xd2, 0xcb, 0xbd));
     canvas.fill_rect(Rect::new(
         INFO_X,
@@ -257,14 +244,14 @@ fn render(
             radius as i16,
             -90,
             -90 + (360.0 * (game.player.air as f32 / AIR_MAX as f32)) as i16,
-            Color::RGB(0x01, 0x2f, 0xd0),
+            Color::RGBA(0x01, 0x2f, 0xd0, 254), // なぜかalpha=255だと他の部分まで半透明が効かなくなってしまう
         )?;
     }
     canvas.filled_circle(
         circle_x,
         circle_y,
         (radius / 2 - 1) as i16,
-        Color::RGB(0xd3, 0xe3, 0xe9),
+        Color::RGBA(0xd3, 0xe3, 0xe9, 254),
     )?;
 
     render_number(
@@ -274,6 +261,26 @@ fn render(
         0,
         format!("{0: >4}", game.get_depth()),
     );
+
+    if game.is_over {
+        canvas.set_draw_color(Color::RGBA(255, 0, 0, 128));
+        canvas.fill_rect(Rect::new(
+            0,
+            0,
+            (SCREEN_WIDTH - INFO_WIDTH) as u32,
+            SCREEN_HEIGHT as u32,
+        ))?;
+    }
+
+    if game.is_clear {
+        canvas.set_draw_color(Color::RGBA(255, 255, 0, 128));
+        canvas.fill_rect(Rect::new(
+            0,
+            0,
+            (SCREEN_WIDTH - INFO_WIDTH) as u32,
+            SCREEN_HEIGHT as u32,
+        ))?;
+    }
 
     canvas.present();
 
