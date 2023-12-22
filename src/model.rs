@@ -144,6 +144,7 @@ impl Player {
 pub struct Game {
     pub rng: StdRng,
     pub is_over: bool,
+    pub is_clear: bool,
     pub frame: i32,
     pub player: Player,
     pub score: i32,
@@ -165,6 +166,7 @@ impl Game {
         let mut game = Game {
             rng: rng,
             is_over: false,
+            is_clear: false,
             frame: 0,
             player: Player::new(),
             score: 0,
@@ -173,6 +175,7 @@ impl Game {
             camera_y: 0,
         };
 
+        // ランダムにセルを敷き詰める
         for y in 6..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
                 game.cells[y as usize][x as usize].cell_type =
@@ -180,9 +183,10 @@ impl Game {
             }
         }
 
+        // クリアブロックを配置
         for y in 0..7 {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                game.cells[CELLS_Y_MAX as usize - y as usize][x as usize].cell_type = CellType::Box;
+                game.cells[CELLS_Y_MAX as usize - y as usize][x as usize].cell_type = CellType::Red;
             }
         }
 
@@ -190,7 +194,7 @@ impl Game {
     }
 
     pub fn update(&mut self, command: Command) {
-        if self.is_over {
+        if self.is_over || self.is_clear {
             return;
         }
 
@@ -292,6 +296,10 @@ impl Game {
         if self.player.air <= 0 {
             self.is_over = true;
             self.requested_sounds.push("crash.wav");
+        }
+
+        if self.player.p.y >= CELLS_Y_LEN - 7 {
+            self.is_clear = true;
         }
 
         self.camera_y = self.player.p.y - 5;
