@@ -54,22 +54,7 @@ pub enum CellType {
     None,
     Air,
     Box,
-    Red,
-    Yellow,
-    Green,
-    Blue,
-}
-
-impl CellType {
-    fn from_u32(n: u32) -> Self {
-        match n % 4 {
-            0 => CellType::Red,
-            1 => CellType::Yellow,
-            2 => CellType::Green,
-            3 => CellType::Blue,
-            _ => panic!(),
-        }
-    }
+    Block,
 }
 
 #[derive(Clone, Copy)]
@@ -78,9 +63,31 @@ pub enum CellState {
     Connected,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum BlockColor {
+    Red,
+    Yellow,
+    Green,
+    Blue,
+    Clear,
+}
+
+impl BlockColor {
+    fn from_u32(n: u32) -> Self {
+        match n % 4 {
+            0 => BlockColor::Red,
+            1 => BlockColor::Yellow,
+            2 => BlockColor::Green,
+            3 => BlockColor::Blue,
+            _ => panic!(),
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Cell {
     pub cell_type: CellType,
+    pub color: BlockColor,
     pub leader: Option<Point>,
 }
 
@@ -88,6 +95,7 @@ impl Cell {
     fn new() -> Self {
         Cell {
             cell_type: CellType::None,
+            color: BlockColor::Red,
             leader: None,
         }
     }
@@ -181,17 +189,22 @@ impl Game {
             camera_y: 0,
         };
 
-        // ランダムにセルを敷き詰める
+        // ランダムに通常ブロックを敷き詰める
         for y in UP_SPACE_HEIGHT..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                game.cell_mut(x, y).cell_type = CellType::from_u32(game.rng.gen::<u32>());
+                game.cell_mut(x, y).cell_type = CellType::Block;
+                game.cell_mut(x, y).color = BlockColor::from_u32(game.rng.gen::<u32>());
             }
         }
+
+        // TODO: airを配置
+        // TODO: Boxを配置
 
         // クリアブロックを配置
         for y in 0..CLEAR_BLOCKS_HEIGHT {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                game.cell_mut(x, CELLS_Y_MAX - y).cell_type = CellType::Red;
+                game.cell_mut(x, CELLS_Y_MAX - y).cell_type = CellType::Block;
+                game.cell_mut(x, CELLS_Y_MAX - y).color = BlockColor::Clear;
             }
         }
 
@@ -254,11 +267,7 @@ impl Game {
                             self.player.direction = Direction::Left;
                             self.player.walking_frames = 0;
                         }
-                        CellType::Red
-                        | CellType::Yellow
-                        | CellType::Green
-                        | CellType::Blue
-                        | CellType::Box => {
+                        CellType::Block | CellType::Box => {
                             self.break_cell(self.player.p.x - 1, self.player.p.y);
                         }
                     }
@@ -273,24 +282,20 @@ impl Game {
                             self.player.direction = Direction::Right;
                             self.player.walking_frames = 0;
                         }
-                        CellType::Red
-                        | CellType::Yellow
-                        | CellType::Green
-                        | CellType::Blue
-                        | CellType::Box => {
+                        CellType::Block | CellType::Box => {
                             self.break_cell(self.player.p.x + 1, self.player.p.y);
                         }
                     }
                 }
             }
             Command::Down => match self.cell(self.player.p.x, self.player.p.y + 1).cell_type {
-                CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
+                CellType::Block => {
                     self.break_cell(self.player.p.x, self.player.p.y + 1);
                 }
                 _ => {}
             },
             Command::Up => match self.cell(self.player.p.x, self.player.p.y - 1).cell_type {
-                CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
+                CellType::Block => {
                     self.break_cell(self.player.p.x, self.player.p.y - 1);
                 }
                 _ => {}
@@ -341,15 +346,13 @@ impl Game {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
                 match self.cell(x, y).cell_type {
-                    CellType::Red | CellType::Yellow | CellType::Green | CellType::Blue => {
-                        match self.cell(x, y).leader {
-                            None => {
-                                let point = Point::new(x, y);
-                                self.set_leader(x, y, point);
-                            }
-                            _ => {}
+                    CellType::Block => match self.cell(x, y).leader {
+                        None => {
+                            let point = Point::new(x, y);
+                            self.set_leader(x, y, point);
                         }
-                    }
+                        _ => {}
+                    },
                     _ => {}
                 }
             }
@@ -359,32 +362,32 @@ impl Game {
     fn set_leader(&mut self, x: i32, y: i32, p: Point) {
         self.cell_mut(x, y).leader = Some(p);
         if x < CELLS_X_MAX
-            && self.cell(x + 1, y).cell_type == self.cell(x, y).cell_type
+            && self.cell(x + 1, y).color == self.cell(x, y).color
             && self.cell(x + 1, y).leader == None
         {
             self.set_leader(x + 1, y, p);
         }
         if x > CELLS_X_MIN
-            && self.cell(x - 1, y).cell_type == self.cell(x, y).cell_type
+            && self.cell(x - 1, y).color == self.cell(x, y).color
             && self.cell(x - 1, y).leader == None
         {
             self.set_leader(x - 1, y, p);
         }
         if y > CELLS_Y_MIN
-            && self.cell(x, y - 1).cell_type == self.cell(x, y).cell_type
+            && self.cell(x, y - 1).color == self.cell(x, y).color
             && self.cell(x, y - 1).leader == None
         {
             self.set_leader(x, y - 1, p);
         }
         if y < CELLS_Y_MAX
-            && self.cell(x, y + 1).cell_type == self.cell(x, y).cell_type
+            && self.cell(x, y + 1).color == self.cell(x, y).color
             && self.cell(x, y + 1).leader == None
         {
             self.set_leader(x, y + 1, p);
         }
     }
 
-    fn cell<'a>(&'a self, x: i32, y: i32) -> &'a Cell {
+    pub fn cell<'a>(&'a self, x: i32, y: i32) -> &'a Cell {
         &self.cells[y as usize][x as usize]
     }
 

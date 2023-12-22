@@ -197,7 +197,7 @@ fn render(
             if y > CELLS_Y_MAX {
                 break;
             }
-            match game.cells[game.camera_y as usize + y as usize][x as usize].cell_type {
+            match game.cell(x, game.camera_y + y).cell_type {
                 CellType::None => {}
                 CellType::Air => {}
                 CellType::Box => {
@@ -209,35 +209,15 @@ fn render(
                         CELL_SIZE as u32,
                     ))?;
                 }
-                CellType::Red => {
-                    canvas.set_draw_color(Color::RGB(255, 128, 128));
-                    canvas.fill_rect(Rect::new(
-                        CELL_SIZE as i32 * x,
-                        CELL_SIZE as i32 * y,
-                        CELL_SIZE as u32,
-                        CELL_SIZE as u32,
-                    ))?;
-                }
-                CellType::Yellow => {
-                    canvas.set_draw_color(Color::RGB(255, 255, 128));
-                    canvas.fill_rect(Rect::new(
-                        CELL_SIZE as i32 * x,
-                        CELL_SIZE as i32 * y,
-                        CELL_SIZE as u32,
-                        CELL_SIZE as u32,
-                    ))?;
-                }
-                CellType::Green => {
-                    canvas.set_draw_color(Color::RGB(128, 255, 128));
-                    canvas.fill_rect(Rect::new(
-                        CELL_SIZE as i32 * x,
-                        CELL_SIZE as i32 * y,
-                        CELL_SIZE as u32,
-                        CELL_SIZE as u32,
-                    ))?;
-                }
-                CellType::Blue => {
-                    canvas.set_draw_color(Color::RGB(128, 128, 255));
+                CellType::Block => {
+                    let color = match game.cell(x, game.camera_y + y).color {
+                        BlockColor::Red => Color::RGB(255, 128, 128),
+                        BlockColor::Yellow => Color::RGB(255, 255, 128),
+                        BlockColor::Green => Color::RGB(128, 255, 128),
+                        BlockColor::Blue => Color::RGB(128, 128, 255),
+                        BlockColor::Clear => Color::RGB(255, 128, 255),
+                    };
+                    canvas.set_draw_color(color);
                     canvas.fill_rect(Rect::new(
                         CELL_SIZE as i32 * x,
                         CELL_SIZE as i32 * y,
