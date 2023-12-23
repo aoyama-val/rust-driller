@@ -326,6 +326,7 @@ impl Game {
         if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Air {
             self.cell_mut(self.player.p.x, self.player.p.y).cell_type = CellType::None;
             self.player.air = clamp(0, self.player.air + (AIR_MAX as f32 * 20.0) as i32, AIR_MAX);
+            self.requested_sounds.push("shrink.wav");
         }
 
         self.player.air -= 1;
@@ -343,6 +344,7 @@ impl Game {
     fn break_cell(&mut self, cell_x: i32, cell_y: i32) {
         if self.cell(cell_x, cell_y).color == BlockColor::Clear {
             self.is_clear = true;
+            self.requested_sounds.push("clear.wav");
         }
 
         self.set_leaders();
