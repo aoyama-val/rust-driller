@@ -18,6 +18,7 @@ pub const CELLS_Y_MIN: i32 = 0;
 pub const CELLS_Y_MAX: i32 = CELLS_Y_LEN - 1;
 
 pub const AIR_MAX: i32 = 3000;
+pub const AIR_SPAWN_INTERVAL: i32 = 20;
 
 pub const WALK_FRAMES: i32 = 3; // 1マス歩くのにかかるフレーム数
 pub const FALL_FRAMES: i32 = 3; // 1マス落ちるのにかかるフレーム数
@@ -199,7 +200,17 @@ impl Game {
             }
         }
 
-        // TODO: airを配置
+        // airを配置
+        let mut depth = UP_SPACE_HEIGHT;
+        while depth < CELLS_Y_LEN {
+            let x = game.rng.gen::<u32>() % (CELLS_X_LEN as u32);
+            let y = depth as u32 + game.rng.gen::<u32>() % (AIR_SPAWN_INTERVAL as u32);
+            if y < CELLS_Y_LEN as u32 {
+                game.cell_mut(x as i32, y as i32).cell_type = CellType::Air;
+            }
+            depth += AIR_SPAWN_INTERVAL;
+        }
+
         // TODO: Boxを配置
 
         // クリアブロックを配置
