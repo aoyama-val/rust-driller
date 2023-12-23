@@ -237,11 +237,14 @@ fn render(
                         BlockColor::Brown => Color::RGB(92, 48, 28),
                     };
                     canvas.set_draw_color(color);
+                    let dug_in_px = ((BLOCK_LIFE_MAX - game.cell(x, cell_y).block_life) as f32
+                        / 100.0
+                        * CELL_SIZE as f32) as i32;
                     canvas.fill_rect(Rect::new(
                         CELL_SIZE as i32 * x,
-                        CELL_SIZE as i32 * y,
+                        CELL_SIZE as i32 * y + dug_in_px,
                         CELL_SIZE as u32,
-                        CELL_SIZE as u32,
+                        (CELL_SIZE - dug_in_px) as u32,
                     ))?;
                 }
             }

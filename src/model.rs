@@ -19,6 +19,7 @@ pub const CELLS_Y_MAX: i32 = CELLS_Y_LEN - 1;
 
 pub const AIR_MAX: i32 = 3000;
 pub const AIR_SPAWN_INTERVAL: i32 = 20;
+pub const BLOCK_LIFE_MAX: i32 = 100;
 
 pub const WALK_FRAMES: i32 = 3; // 1マス歩くのにかかるフレーム数
 pub const FALL_FRAMES: i32 = 3; // 1マス落ちるのにかかるフレーム数
@@ -90,6 +91,7 @@ pub struct Cell {
     pub cell_type: CellType,
     pub color: BlockColor,
     pub leader: Option<Point>,
+    pub block_life: i32,
 }
 
 impl Cell {
@@ -98,6 +100,7 @@ impl Cell {
             cell_type: CellType::None,
             color: BlockColor::Red,
             leader: None,
+            block_life: BLOCK_LIFE_MAX,
         }
     }
 }
@@ -327,7 +330,7 @@ impl Game {
 
         if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Air {
             self.cell_mut(self.player.p.x, self.player.p.y).cell_type = CellType::None;
-            self.player.air = clamp(0, self.player.air + (AIR_MAX as f32 * 20.0) as i32, AIR_MAX);
+            self.player.air = clamp(0, self.player.air + (AIR_MAX as f32 * 0.2) as i32, AIR_MAX);
             self.requested_sounds.push("shrink.wav");
         }
 
@@ -347,6 +350,18 @@ impl Game {
         if self.cell(cell_x, cell_y).color == BlockColor::Clear {
             self.is_clear = true;
             self.requested_sounds.push("clear.wav");
+        }
+
+        if self.cell(cell_x, cell_y).color == BlockColor::Brown {
+            self.cell_mut(cell_x, cell_y).block_life -= 25;
+        } else {
+            self.cell_mut(cell_x, cell_y).block_life = 0;
+        }
+        if self.cell(cell_x, cell_y).block_life > 0 {
+            return;
+        }
+        if self.cell(cell_x, cell_y).color == BlockColor::Brown {
+            self.player.air = clamp(0, self.player.air - (AIR_MAX as f32 * 0.23) as i32, AIR_MAX);
         }
 
         self.set_leaders();
