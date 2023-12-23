@@ -257,8 +257,9 @@ fn render(
     render_number(
         canvas,
         resources,
-        INFO_X + 50,
+        INFO_X + 20,
         0,
+        2.0,
         format!("{0: >4}", game.get_depth()),
     );
 
@@ -292,6 +293,7 @@ fn render_number(
     resources: &Resources,
     x: i32,
     y: i32,
+    scale: f32,
     numstr: String,
 ) {
     let mut x = x;
@@ -308,11 +310,16 @@ fn render_number(
                         digit_width_in_px as u32,
                         image.h,
                     ),
-                    Rect::new(x, y, digit_width_in_px as u32, image.h),
+                    Rect::new(
+                        x,
+                        y,
+                        (digit_width_in_px as f32 * scale) as u32,
+                        (image.h as f32 * scale) as u32,
+                    ),
                 )
                 .unwrap();
         }
-        x += digit_width_in_px;
+        x += (digit_width_in_px as f32 * scale) as i32;
     }
 }
 
