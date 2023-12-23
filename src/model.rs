@@ -221,16 +221,19 @@ impl Game {
             }
         }
 
+        game.print_blocks();
+        game
+    }
+
+    pub fn print_blocks(&self) {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             print!("{}: ", y);
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                print!("{:?} ", game.cell(x, y).cell_type);
+                print!("{:?} ", self.cell(x, y).cell_type);
             }
             print!("\n");
         }
-        println!("{}", game.player.p.y);
-
-        game
+        println!("{}", self.player.p.y);
     }
 
     pub fn next_stage(&self) -> Self {
