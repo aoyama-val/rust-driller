@@ -191,7 +191,6 @@ fn render(
     canvas.clear();
 
     // render player
-    canvas.set_draw_color(Color::RGB(0, 0, 255));
     let offset_x = match game.player.state {
         PlayerState::Walking => {
             ((game.player.walking_frames as f32 / WALK_FRAMES as f32) * CELL_SIZE as f32) as i32
@@ -203,11 +202,26 @@ fn render(
         }
         _ => 0,
     };
+    canvas.set_draw_color(Color::RGB(0xfa, 0x17, 0x46));
     canvas.fill_rect(Rect::new(
         game.player.p.x * CELL_SIZE + offset_x,
         (game.player.p.y - game.camera_y) * CELL_SIZE,
         CELL_SIZE as u32,
-        CELL_SIZE as u32,
+        28,
+    ))?;
+    canvas.set_draw_color(Color::RGB(0xff, 0xc3, 0x5b));
+    canvas.fill_rect(Rect::new(
+        game.player.p.x * CELL_SIZE + offset_x + (CELL_SIZE - 28) / 2,
+        (game.player.p.y - game.camera_y) * CELL_SIZE + 5,
+        28,
+        18,
+    ))?;
+    canvas.set_draw_color(Color::RGB(0x4b, 0xe4, 0xe9));
+    canvas.fill_rect(Rect::new(
+        game.player.p.x * CELL_SIZE + offset_x + 10,
+        (game.player.p.y - game.camera_y) * CELL_SIZE + CELL_SIZE / 2 + 2,
+        20,
+        18,
     ))?;
 
     // render cells
