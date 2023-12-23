@@ -374,17 +374,19 @@ impl Game {
     fn set_leaders(&mut self) {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if self.cell(x, y).cell_type == CellType::Block {
-                    if self.cell(x, y).leader == None {
-                        let point = Point::new(x, y);
-                        self.set_leader(x, y, point);
-                    }
+                if self.cell(x, y).leader == None {
+                    let point = Point::new(x, y);
+                    self.set_leader(x, y, point);
                 }
             }
         }
     }
 
     fn set_leader(&mut self, x: i32, y: i32, p: Point) {
+        if self.cell(x, y).cell_type != CellType::Block {
+            return;
+        }
+
         self.cell_mut(x, y).leader = Some(p);
         if x < CELLS_X_MAX
             && self.cell(x + 1, y).color == self.cell(x, y).color
