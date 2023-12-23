@@ -334,10 +334,6 @@ impl Game {
             self.requested_sounds.push("crash.wav");
         }
 
-        if self.player.p.y >= CELLS_Y_LEN - 7 {
-            self.is_clear = true;
-        }
-
         self.camera_y = self.player.p.y - 5;
 
         self.frame += 1;
