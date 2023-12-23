@@ -271,13 +271,15 @@ fn render(
         Color::RGBA(0xd3, 0xe3, 0xe9, 254),
     )?;
 
-    render_number(
+    let font = resources.fonts.get_mut("boxfont2.ttf").unwrap();
+    let depth = format!("{0: >4}", game.get_depth());
+    render_font(
         canvas,
-        resources,
-        INFO_X + 20,
-        0,
-        2.0,
-        format!("{0: >4}", game.get_depth()),
+        font,
+        depth,
+        INFO_X + 5,
+        180,
+        Color::RGBA(0xfe, 0x54, 0x00, 255),
     );
 
     if game.is_over {
