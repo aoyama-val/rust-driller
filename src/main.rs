@@ -89,8 +89,10 @@ pub fn main() -> Result<(), String> {
                     keycode: Some(Keycode::Space),
                     ..
                 } => {
-                    if game.is_over || game.is_clear {
+                    if game.is_over {
                         game = Game::new();
+                    } else if game.is_clear {
+                        game = game.next_stage();
                     }
                 }
                 Event::KeyDown {

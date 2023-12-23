@@ -165,6 +165,7 @@ pub struct Game {
     pub requested_sounds: Vec<&'static str>,
     pub cells: [[Cell; CELLS_X_LEN as usize]; CELLS_Y_LEN as usize],
     pub camera_y: i32,
+    pub depth: i32,
 }
 
 impl Game {
@@ -187,6 +188,7 @@ impl Game {
             requested_sounds: Vec::new(),
             cells: [[Cell::new(); CELLS_X_LEN as usize]; CELLS_Y_LEN as usize],
             camera_y: 0,
+            depth: 0,
         };
 
         // ランダムに通常ブロックを敷き詰める
@@ -220,6 +222,12 @@ impl Game {
         game
     }
 
+    pub fn next_stage(&self) -> Self {
+        let mut game = Game::new();
+        game.depth = self.depth;
+        game
+    }
+
     pub fn update(&mut self, command: Command) {
         if self.is_over || self.is_clear {
             return;
@@ -241,6 +249,7 @@ impl Game {
                 self.player.falling_frames = 0;
                 self.player.p.y += 1;
                 self.player.state = PlayerState::Standing;
+                self.depth += 1;
             }
         }
 
@@ -398,7 +407,8 @@ impl Game {
     }
 
     pub fn get_depth(&self) -> i32 {
-        std::cmp::max(self.player.p.y - UP_SPACE_HEIGHT + 1, 0)
+        self.depth
+        // std::cmp::max(self.player.p.y - UP_SPACE_HEIGHT + 1, 0)
     }
 }
 
