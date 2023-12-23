@@ -227,15 +227,6 @@ fn render(
                         Color::RGB(0x63, 0xc1, 0xa5),
                     )?;
                 }
-                CellType::Box => {
-                    canvas.set_draw_color(Color::RGB(92, 48, 28));
-                    canvas.fill_rect(Rect::new(
-                        CELL_SIZE as i32 * x,
-                        CELL_SIZE as i32 * y,
-                        CELL_SIZE as u32,
-                        CELL_SIZE as u32,
-                    ))?;
-                }
                 CellType::Block => {
                     let color = match game.cell(x, cell_y).color {
                         BlockColor::Red => Color::RGB(255, 128, 128),
@@ -243,6 +234,7 @@ fn render(
                         BlockColor::Green => Color::RGB(128, 255, 128),
                         BlockColor::Blue => Color::RGB(128, 128, 255),
                         BlockColor::Clear => Color::RGB(255, 128, 255),
+                        BlockColor::Brown => Color::RGB(92, 48, 28),
                     };
                     canvas.set_draw_color(color);
                     canvas.fill_rect(Rect::new(

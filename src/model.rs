@@ -54,7 +54,6 @@ impl Direction {
 pub enum CellType {
     None,
     Air,
-    Box,
     Block,
 }
 
@@ -71,6 +70,7 @@ pub enum BlockColor {
     Green,
     Blue,
     Clear,
+    Brown,
 }
 
 impl BlockColor {
@@ -196,7 +196,11 @@ impl Game {
         for y in UP_SPACE_HEIGHT..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
                 game.cell_mut(x, y).cell_type = CellType::Block;
-                game.cell_mut(x, y).color = BlockColor::from_u32(game.rng.gen::<u32>());
+                if game.rng.gen_bool(0.05) {
+                    game.cell_mut(x, y).color = BlockColor::Brown;
+                } else {
+                    game.cell_mut(x, y).color = BlockColor::from_u32(game.rng.gen::<u32>());
+                }
             }
         }
 
@@ -210,8 +214,6 @@ impl Game {
             }
             depth += AIR_SPAWN_INTERVAL;
         }
-
-        // TODO: Boxを配置
 
         // クリアブロックを配置
         for y in 0..CLEAR_BLOCKS_HEIGHT {
@@ -289,7 +291,7 @@ impl Game {
                             self.player.direction = Direction::Left;
                             self.player.walking_frames = 0;
                         }
-                        CellType::Block | CellType::Box => {
+                        CellType::Block => {
                             self.break_cell(self.player.p.x - 1, self.player.p.y);
                         }
                     }
@@ -303,7 +305,7 @@ impl Game {
                             self.player.direction = Direction::Right;
                             self.player.walking_frames = 0;
                         }
-                        CellType::Block | CellType::Box => {
+                        CellType::Block => {
                             self.break_cell(self.player.p.x + 1, self.player.p.y);
                         }
                     }
