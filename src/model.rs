@@ -282,7 +282,6 @@ impl Game {
         match command {
             Command::None => {}
             Command::Left => {
-                println!("left");
                 if self.player.state == PlayerState::Standing && self.player.p.x > CELLS_X_MIN {
                     match self.cell(self.player.p.x - 1, self.player.p.y).cell_type {
                         CellType::None | CellType::Air => {
@@ -297,7 +296,6 @@ impl Game {
                 }
             }
             Command::Right => {
-                println!("right");
                 if self.player.state == PlayerState::Standing && self.player.p.x < CELLS_X_MAX {
                     match self.cell(self.player.p.x + 1, self.player.p.y).cell_type {
                         CellType::None | CellType::Air => {
@@ -323,6 +321,11 @@ impl Game {
                 }
                 _ => {}
             },
+        }
+
+        if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Air {
+            self.cell_mut(self.player.p.x, self.player.p.y).cell_type = CellType::None;
+            self.player.air = clamp(0, self.player.air + (AIR_MAX as f32 * 20.0) as i32, AIR_MAX);
         }
 
         self.player.air -= 1;
@@ -357,17 +360,6 @@ impl Game {
                 }
             }
         }
-
-        // for y in CELLS_Y_MIN..=CELLS_Y_MAX {
-        //     for x in CELLS_X_MIN..=CELLS_X_MAX {
-        //         if let Some(p) = self.cell(x, y).leader {
-        //             print!("({} {}) ", p.x, p.y);
-        //         } else {
-        //             print!("(   ) ");
-        //         }
-        //     }
-        //     println!("");
-        // }
     }
 
     // 全ブロックのつながりを判定
