@@ -5,6 +5,8 @@ use sdl2::mixer;
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::{BlendMode, Canvas, Texture, TextureCreator};
+use sdl2::sys::Font;
+use sdl2::ttf::Sdl2TtfContext;
 use sdl2::video::{Window, WindowContext};
 use std::collections::HashMap;
 use std::path::Path;
@@ -35,6 +37,7 @@ impl<'a> Image<'a> {
 struct Resources<'a> {
     images: HashMap<String, Image<'a>>,
     chunks: HashMap<String, sdl2::mixer::Chunk>,
+    fonts: HashMap<String, sdl2::ttf::Font<'a, 'a>>,
 }
 
 pub fn main() -> Result<(), String> {
@@ -52,11 +55,13 @@ pub fn main() -> Result<(), String> {
 
     init_mixer();
 
+    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+
     let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
     canvas.set_blend_mode(BlendMode::Blend);
 
     let texture_creator = canvas.texture_creator();
-    let mut resources = load_resources(&texture_creator, &mut canvas);
+    let mut resources = load_resources(&texture_creator, &mut canvas, &ttf_context);
 
     let mut event_pump = sdl_context.event_pump()?;
 
@@ -134,10 +139,12 @@ fn init_mixer() {
 fn load_resources<'a>(
     texture_creator: &'a TextureCreator<WindowContext>,
     canvas: &mut Canvas<Window>,
+    ttf_context: &'a Sdl2TtfContext,
 ) -> Resources<'a> {
     let mut resources = Resources {
         images: HashMap::new(),
         chunks: HashMap::new(),
+        fonts: HashMap::new(),
     };
 
     let image_paths = ["numbers.bmp"];
@@ -158,6 +165,16 @@ fn load_resources<'a>(
         let chunk =
             mixer::Chunk::from_file(full_path).expect(&format!("cannot load sound: {}", path));
         resources.chunks.insert(path.to_string(), chunk);
+    }
+
+    let font_paths = ["boxfont2.ttf"];
+    for path in font_paths {
+        let full_path = "resources/font/".to_string() + path;
+
+        let font = ttf_context
+            .load_font(full_path, 32)
+            .expect(&format!("cannot load font: {}", path));
+        resources.fonts.insert(path.to_string(), font);
     }
 
     resources
@@ -274,13 +291,15 @@ fn render(
     }
 
     if game.is_clear {
-        canvas.set_draw_color(Color::RGBA(255, 255, 0, 128));
-        canvas.fill_rect(Rect::new(
-            0,
-            0,
-            (SCREEN_WIDTH - INFO_WIDTH) as u32,
-            SCREEN_HEIGHT as u32,
-        ))?;
+        let font = resources.fonts.get_mut("boxfont2.ttf").unwrap();
+        render_font(
+            canvas,
+            font,
+            "CLEAR!!".to_string(),
+            140,
+            220,
+            Color::RGBA(255, 255, 0, 255),
+        );
     }
 
     canvas.present();
@@ -321,6 +340,29 @@ fn render_number(
         }
         x += (digit_width_in_px as f32 * scale) as i32;
     }
+}
+
+fn render_font(
+    canvas: &mut Canvas<Window>,
+    font: &sdl2::ttf::Font,
+    text: String,
+    x: i32,
+    y: i32,
+    color: Color,
+) {
+    let texture_creator = canvas.texture_creator();
+
+    let surface = font.render(&text).blended(color).unwrap();
+    let texture = texture_creator
+        .create_texture_from_surface(&surface)
+        .unwrap();
+    canvas
+        .copy(
+            &texture,
+            None,
+            Rect::new(x, y, texture.query().width, texture.query().height),
+        )
+        .unwrap();
 }
 
 fn play_sounds(game: &mut Game, resources: &Resources) {
