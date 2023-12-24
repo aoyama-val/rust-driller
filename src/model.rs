@@ -86,12 +86,13 @@ impl BlockColor {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Cell {
     pub cell_type: CellType,
     pub color: BlockColor,
-    pub leader: Option<Point>,
+    pub leader: Option<Point>, // 同じ色のひとかたまりのリーダー component leader
     pub block_life: i32,
+    pub grounded: bool,
 }
 
 impl Cell {
@@ -101,6 +102,7 @@ impl Cell {
             color: BlockColor::Red,
             leader: None,
             block_life: BLOCK_LIFE_MAX,
+            grounded: false,
         }
     }
 }
@@ -284,6 +286,8 @@ impl Game {
             }
         }
 
+        self.set_leaders();
+
         match command {
             Command::None => {}
             Command::Left => {
@@ -328,12 +332,20 @@ impl Game {
             },
         }
 
+        self.update_grounded();
+
+        // TODO: 接地していないブロックを落とす
+
+        // TODO: つぶされたらゲームオーバー
+
+        // エアを取得
         if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Air {
             self.cell_mut(self.player.p.x, self.player.p.y).cell_type = CellType::None;
             self.player.air = clamp(0, self.player.air + (AIR_MAX as f32 * 0.2) as i32, AIR_MAX);
             self.requested_sounds.push("shrink.wav");
         }
 
+        // エア消費
         self.player.air -= 1;
         if self.player.air <= 0 {
             self.is_over = true;
@@ -344,6 +356,53 @@ impl Game {
 
         self.frame += 1;
         self.score = self.frame / 30;
+    }
+
+    // ブロックが接地しているか判定して記録する
+    fn update_grounded(&mut self) {
+        // いったん全部falseにする
+        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
+            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                self.cell_mut(x, y).grounded = false;
+            }
+        }
+        // 下からループして
+        for y in (CELLS_Y_MIN..=CELLS_Y_MAX).rev() {
+            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                if self.cell(x, y).grounded == false {
+                    // 一番底のクリアブロック、または1個下に接地したブロックがあるならそこも接地している
+                    let grounded = y == CELLS_Y_MAX
+                        || (self.cell(x, y + 1).cell_type == CellType::Block
+                            && self.cell(x, y + 1).grounded);
+                    if grounded {
+                        match self.cell(x, y).cell_type {
+                            CellType::None => {}
+                            CellType::Air => self.cell_mut(x, y).grounded = true,
+                            CellType::Block => {
+                                // つながったブロックを全部接地にする
+                                let component = self.get_component(x, y);
+                                for point in &component {
+                                    self.cell_mut(point.x, point.y).grounded = true;
+                                }
+                            }
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    // 指定したブロックとつながっているブロックの座標のリストを返す
+    fn get_component(&self, x: i32, y: i32) -> Vec<Point> {
+        let mut result = Vec::new();
+        for yi in CELLS_Y_MIN..=CELLS_Y_MAX {
+            for xi in CELLS_X_MIN..=CELLS_X_MAX {
+                if self.cell(xi, yi).leader == self.cell(x, y).leader {
+                    result.push(Point::new(xi, yi));
+                }
+            }
+        }
+        result
     }
 
     fn break_cell(&mut self, cell_x: i32, cell_y: i32) {
@@ -363,8 +422,6 @@ impl Game {
         if self.cell(cell_x, cell_y).color == BlockColor::Brown {
             self.player.air = clamp(0, self.player.air - (AIR_MAX as f32 * 0.23) as i32, AIR_MAX);
         }
-
-        self.set_leaders();
 
         // つながっているブロックを消去
         let leader = self.cell(cell_x, cell_y).leader;

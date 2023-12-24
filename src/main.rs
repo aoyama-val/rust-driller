@@ -262,6 +262,17 @@ fn render(
                     ))?;
                 }
             }
+            if game.cell(x, cell_y).cell_type != CellType::None {
+                if game.cell(x, cell_y).grounded == false {
+                    canvas.set_draw_color(Color::RGBA(255, 0, 0, 128));
+                    canvas.fill_rect(Rect::new(
+                        CELL_SIZE as i32 * x,
+                        CELL_SIZE as i32 * y,
+                        CELL_SIZE as u32,
+                        CELL_SIZE as u32,
+                    ))?;
+                }
+            }
         }
     }
 
