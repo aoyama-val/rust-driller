@@ -268,7 +268,10 @@ impl Game {
 
         match command {
             Command::Left | Command::Right | Command::Up | Command::Down => {
-                self.dig_or_move(command)
+                self.dig_or_move(command);
+                if self.is_clear {
+                    return;
+                }
             }
             Command::None => {}
         }

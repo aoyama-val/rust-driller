@@ -213,7 +213,7 @@ fn render(
                         BlockColor::Yellow => Color::RGB(255, 255, 128),
                         BlockColor::Green => Color::RGB(128, 255, 128),
                         BlockColor::Blue => Color::RGB(128, 128, 255),
-                        BlockColor::Clear => Color::RGB(255, 128, 255),
+                        BlockColor::Clear => Color::RGB(0x63, 0xc1, 0xa5),
                         BlockColor::Brown => Color::RGB(92, 48, 28),
                     };
                     canvas.set_draw_color(color);
