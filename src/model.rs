@@ -367,11 +367,17 @@ impl Game {
                 CellType::Block => {
                     self.break_cell(self.player.p.x, self.player.p.y + 1);
                 }
+                CellType::Air => {
+                    self.player.p.y += 1;
+                }
                 _ => {}
             },
             Command::Up => match self.cell(self.player.p.x, self.player.p.y - 1).cell_type {
                 CellType::Block => {
                     self.break_cell(self.player.p.x, self.player.p.y - 1);
+                }
+                CellType::Air => {
+                    self.player.p.y += 1;
                 }
                 _ => {}
             },
@@ -392,9 +398,9 @@ impl Game {
         for y in (CELLS_Y_MIN..=CELLS_Y_MAX).rev() {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
                 if self.cell(x, y).grounded == false {
-                    // 一番底のクリアブロック、または1個下に接地したブロックがあるならそこも接地している
+                    // 一番底のクリアブロック、または1個下に接地したブロックまたはエアがあるならそこも接地している
                     let grounded = y == CELLS_Y_MAX
-                        || (self.cell(x, y + 1).cell_type == CellType::Block
+                        || (self.cell(x, y + 1).cell_type != CellType::None
                             && self.cell(x, y + 1).grounded);
                     if grounded {
                         match self.cell(x, y).cell_type {
