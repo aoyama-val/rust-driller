@@ -339,7 +339,7 @@ fn render(
             font,
             "CLEAR!!".to_string(),
             140,
-            220,
+            240,
             Color::RGBA(255, 255, 0, 255),
         );
     }
