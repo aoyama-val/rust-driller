@@ -1,5 +1,5 @@
 use rand::prelude::*;
-use std::time;
+use std::{fmt::Write, time};
 
 pub const CELL_SIZE: i32 = 40;
 pub const INFO_WIDTH: i32 = 100;
@@ -86,7 +86,7 @@ impl BlockColor {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Cell {
     pub cell_type: CellType,
     pub color: BlockColor,
@@ -104,6 +104,31 @@ impl Cell {
             block_life: BLOCK_LIFE_MAX,
             grounded: false,
         }
+    }
+}
+
+impl std::fmt::Debug for Cell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let color = match self.color {
+            BlockColor::Red => "R",
+            BlockColor::Yellow => "Y",
+            BlockColor::Green => "G",
+            BlockColor::Blue => "B",
+            BlockColor::Clear => "C",
+            BlockColor::Brown => "O",
+        };
+        let grounded = if self.grounded { "o" } else { "x" };
+        let leader = if let Some(p) = self.leader {
+            format!("{},{}", p.x, p.y)
+        } else {
+            "None".to_string()
+        };
+        match self.cell_type {
+            CellType::None => write!(f, "None").unwrap(),
+            CellType::Air => write!(f, "Air ").unwrap(),
+            CellType::Block => write!(f, "{}({}){:?}", color, grounded, leader).unwrap(),
+        };
+        Ok(())
     }
 }
 
@@ -150,7 +175,8 @@ pub struct Player {
 impl Player {
     pub fn new() -> Self {
         let player = Player {
-            p: Point::new(CELLS_X_LEN / 2, 5),
+            // p: Point::new(CELLS_X_LEN / 2, 5),
+            p: Point::new(5, 13),
             air: AIR_MAX,
             direction: Direction::Left,
             walking_frames: 0,
@@ -233,18 +259,23 @@ impl Game {
     }
 
     pub fn print_blocks(&self) {
+        println!("{:?}", self.player.p);
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
-            print!("{}: ", y);
+            print!("{: >3}: ", y);
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                print!(
-                    "{:?}({:?}) ",
-                    self.cell(x, y).cell_type,
-                    self.cell(x, y).grounded
-                );
+                // print!(
+                //     "{:?}({:?}) ",
+                //     self.cell(x, y).cell_type,
+                //     self.cell(x, y).grounded
+                // );
+                if self.player.p.x == x && self.player.p.y == y {
+                    print!("\x1b[0;31m{:?} \x1b[0m", self.cell(x, y));
+                } else {
+                    print!("{:?} ", self.cell(x, y));
+                }
             }
             print!("\n");
         }
-        println!("{}", self.player.p.y);
     }
 
     pub fn next_stage(&self) -> Self {
@@ -292,6 +323,8 @@ impl Game {
 
         self.set_leaders();
 
+        let mut dug = false;
+
         match command {
             Command::None => {}
             Command::Left => {
@@ -303,9 +336,15 @@ impl Game {
                             self.player.walking_frames = 0;
                         }
                         CellType::Block => {
+                            println!("before");
+                            self.print_blocks();
                             self.break_cell(self.player.p.x - 1, self.player.p.y);
+                            println!("after");
+                            self.print_blocks();
+                            dug = true;
                         }
                     }
+                    println!("player = {:?}", self.player.p);
                 }
             }
             Command::Right => {
@@ -317,29 +356,51 @@ impl Game {
                             self.player.walking_frames = 0;
                         }
                         CellType::Block => {
+                            println!("before");
+                            self.print_blocks();
                             self.break_cell(self.player.p.x + 1, self.player.p.y);
+                            println!("after");
+                            self.print_blocks();
+                            dug = true;
                         }
                     }
+                    println!("player = {:?}", self.player.p);
                 }
             }
             Command::Down => match self.cell(self.player.p.x, self.player.p.y + 1).cell_type {
                 CellType::Block => {
+                    println!("before");
+                    self.print_blocks();
                     self.break_cell(self.player.p.x, self.player.p.y + 1);
+                    println!("after");
+                    self.print_blocks();
+                    dug = true;
                 }
                 _ => {}
             },
             Command::Up => match self.cell(self.player.p.x, self.player.p.y - 1).cell_type {
                 CellType::Block => {
                     self.break_cell(self.player.p.x, self.player.p.y - 1);
+                    self.print_blocks();
+                    dug = true;
                 }
                 _ => {}
             },
         }
 
         self.update_grounded();
+        if dug {
+            println!("after update_grounded");
+            self.print_blocks();
+        }
 
-        self.print_blocks();
         self.fall_ungrounded_blocks();
+        // self.update_grounded();
+        // self.set_leaders();
+        if dug {
+            println!("after fall_ungrounded_blocks");
+            self.print_blocks();
+        }
 
         // TODO: つぶされたらゲームオーバー
 
@@ -460,6 +521,12 @@ impl Game {
 
     // 全ブロックのつながりを判定
     fn set_leaders(&mut self) {
+        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
+            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                self.cell_mut(x, y).leader = None;
+            }
+        }
+
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
                 if self.cell(x, y).leader == None {
