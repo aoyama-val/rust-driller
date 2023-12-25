@@ -159,6 +159,10 @@ impl Player {
         };
         player
     }
+
+    pub fn air_percent(&self) -> f32 {
+        (self.air as f32 / AIR_MAX as f32) * 100.0f32
+    }
 }
 
 pub struct Game {
@@ -468,6 +472,7 @@ impl Game {
         }
         if self.cell(cell_x, cell_y).color == BlockColor::Brown {
             self.player.air = clamp(0, self.player.air - (AIR_MAX as f32 * 0.23) as i32, AIR_MAX);
+            self.requested_sounds.push("break_brown.wav");
         }
 
         // つながっているブロックを消去

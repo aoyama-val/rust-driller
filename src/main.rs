@@ -161,7 +161,7 @@ fn load_resources<'a>(
         resources.images.insert(path.to_string(), image);
     }
 
-    let sound_paths = ["clear.wav", "crash.wav", "shrink.wav"];
+    let sound_paths = ["break_brown.wav", "clear.wav", "crash.wav", "shrink.wav"];
     for path in sound_paths {
         let full_path = "resources/sound/".to_string() + path;
         let chunk =
@@ -283,24 +283,32 @@ fn render(
         SCREEN_HEIGHT as u32,
     ))?;
 
+    // render air
     let radius = 30;
     let circle_x = (INFO_X + INFO_WIDTH / 2) as i16;
     let circle_y = 270;
     if game.player.air > 0 {
+        // 外側
         canvas.filled_pie(
             circle_x,
             circle_y,
             radius as i16,
             -90,
-            -90 + (360.0 * (game.player.air as f32 / AIR_MAX as f32)) as i16,
+            -90 + (360.0 * game.player.air_percent() / 100.0f32) as i16,
             Color::RGBA(0x01, 0x2f, 0xd0, 254), // なぜかalpha=255だと他の部分まで半透明が効かなくなってしまう
         )?;
     }
+    // 内側の円
+    let inner_circle_color = if game.player.air_percent() >= 20.0f32 {
+        Color::RGBA(0xd3, 0xe3, 0xe9, 254)
+    } else {
+        Color::RGBA(0xdf, 0x7a, 0x98, 254)
+    };
     canvas.filled_circle(
         circle_x,
         circle_y,
         (radius / 2 - 1) as i16,
-        Color::RGBA(0xd3, 0xe3, 0xe9, 254),
+        inner_circle_color,
     )?;
 
     let font = resources.fonts.get_mut("boxfont2.ttf").unwrap();
