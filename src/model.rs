@@ -1,5 +1,5 @@
 use rand::prelude::*;
-use std::{fmt::Write, time};
+use std::time;
 
 pub const CELL_SIZE: i32 = 40;
 pub const INFO_WIDTH: i32 = 100;
@@ -40,28 +40,11 @@ pub enum Direction {
     Up,
 }
 
-impl Direction {
-    pub fn opposite(&self) -> Direction {
-        match self {
-            Direction::Left => Direction::Right,
-            Direction::Right => Direction::Left,
-            Direction::Down => Direction::Up,
-            Direction::Up => Direction::Down,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum CellType {
     None,
     Air,
     Block,
-}
-
-#[derive(Clone, Copy)]
-pub enum CellState {
-    Normal,
-    Connected,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -145,15 +128,6 @@ impl Point {
             y: (CELLS_Y_LEN + y) % CELLS_Y_LEN,
         }
     }
-
-    pub fn neighbor(&self, direction: Direction) -> Self {
-        match direction {
-            Direction::Left => Self::new(self.x - 1, self.y),
-            Direction::Right => Self::new(self.x + 1, self.y),
-            Direction::Up => Self::new(self.x, self.y - 1),
-            Direction::Down => Self::new(self.x, self.y + 1),
-        }
-    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -175,8 +149,8 @@ pub struct Player {
 impl Player {
     pub fn new() -> Self {
         let player = Player {
-            // p: Point::new(CELLS_X_LEN / 2, 5),
-            p: Point::new(5, 13),
+            p: Point::new(CELLS_X_LEN / 2, 5),
+            // p: Point::new(5, 13),
             air: AIR_MAX,
             direction: Direction::Left,
             walking_frames: 0,
@@ -289,8 +263,6 @@ impl Game {
             return;
         }
 
-        // println!("{:?}", self.player.state);
-
         if self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::None
             && self.player.state != PlayerState::Falling
         {
@@ -344,7 +316,6 @@ impl Game {
                             dug = true;
                         }
                     }
-                    println!("player = {:?}", self.player.p);
                 }
             }
             Command::Right => {
@@ -389,18 +360,8 @@ impl Game {
         }
 
         self.update_grounded();
-        if dug {
-            println!("after update_grounded");
-            self.print_blocks();
-        }
 
         self.fall_ungrounded_blocks();
-        // self.update_grounded();
-        // self.set_leaders();
-        if dug {
-            println!("after fall_ungrounded_blocks");
-            self.print_blocks();
-        }
 
         // TODO: つぶされたらゲームオーバー
 
@@ -579,7 +540,6 @@ impl Game {
 
     pub fn get_depth(&self) -> i32 {
         self.depth
-        // std::cmp::max(self.player.p.y - UP_SPACE_HEIGHT + 1, 0)
     }
 }
 
