@@ -363,7 +363,11 @@ impl Game {
 
         self.fall_ungrounded_blocks();
 
-        // TODO: つぶされたらゲームオーバー
+        // ブロックにつぶされたらゲームオーバー
+        if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Block {
+            self.is_over = true;
+            self.requested_sounds.push("crash.wav");
+        }
 
         // エアを取得
         if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Air {
