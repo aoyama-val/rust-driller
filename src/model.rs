@@ -237,11 +237,6 @@ impl Game {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             print!("{: >3}: ", y);
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                // print!(
-                //     "{:?}({:?}) ",
-                //     self.cell(x, y).cell_type,
-                //     self.cell(x, y).grounded
-                // );
                 if self.player.p.x == x && self.player.p.y == y {
                     print!("\x1b[0;31m{:?} \x1b[0m", self.cell(x, y));
                 } else {
@@ -263,100 +258,15 @@ impl Game {
             return;
         }
 
-        if self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::None
-            && self.player.state != PlayerState::Falling
-        {
-            self.player.state = PlayerState::Falling;
-
-            self.player.falling_frames = 0;
-        }
-
-        if self.player.state == PlayerState::Falling {
-            self.player.falling_frames += 1;
-            if self.player.falling_frames >= FALL_FRAMES {
-                self.player.falling_frames = 0;
-                self.player.p.y += 1;
-                self.player.state = PlayerState::Standing;
-                self.depth += 1;
-            }
-        }
-
-        if self.player.state == PlayerState::Walking {
-            self.player.walking_frames += 1;
-            if self.player.walking_frames >= WALK_FRAMES {
-                if self.player.direction == Direction::Left {
-                    self.player.p.x -= 1;
-                } else {
-                    self.player.p.x += 1;
-                }
-                self.player.state = PlayerState::Standing;
-            }
-        }
+        self.player_move();
 
         self.set_leaders();
 
-        let mut dug = false;
-
         match command {
+            Command::Left | Command::Right | Command::Up | Command::Down => {
+                self.dig_or_move(command)
+            }
             Command::None => {}
-            Command::Left => {
-                if self.player.state == PlayerState::Standing && self.player.p.x > CELLS_X_MIN {
-                    match self.cell(self.player.p.x - 1, self.player.p.y).cell_type {
-                        CellType::None | CellType::Air => {
-                            self.player.state = PlayerState::Walking;
-                            self.player.direction = Direction::Left;
-                            self.player.walking_frames = 0;
-                        }
-                        CellType::Block => {
-                            println!("before");
-                            self.print_blocks();
-                            self.break_cell(self.player.p.x - 1, self.player.p.y);
-                            println!("after");
-                            self.print_blocks();
-                            dug = true;
-                        }
-                    }
-                }
-            }
-            Command::Right => {
-                if self.player.state == PlayerState::Standing && self.player.p.x < CELLS_X_MAX {
-                    match self.cell(self.player.p.x + 1, self.player.p.y).cell_type {
-                        CellType::None | CellType::Air => {
-                            self.player.state = PlayerState::Walking;
-                            self.player.direction = Direction::Right;
-                            self.player.walking_frames = 0;
-                        }
-                        CellType::Block => {
-                            println!("before");
-                            self.print_blocks();
-                            self.break_cell(self.player.p.x + 1, self.player.p.y);
-                            println!("after");
-                            self.print_blocks();
-                            dug = true;
-                        }
-                    }
-                    println!("player = {:?}", self.player.p);
-                }
-            }
-            Command::Down => match self.cell(self.player.p.x, self.player.p.y + 1).cell_type {
-                CellType::Block => {
-                    println!("before");
-                    self.print_blocks();
-                    self.break_cell(self.player.p.x, self.player.p.y + 1);
-                    println!("after");
-                    self.print_blocks();
-                    dug = true;
-                }
-                _ => {}
-            },
-            Command::Up => match self.cell(self.player.p.x, self.player.p.y - 1).cell_type {
-                CellType::Block => {
-                    self.break_cell(self.player.p.x, self.player.p.y - 1);
-                    self.print_blocks();
-                    dug = true;
-                }
-                _ => {}
-            },
         }
 
         self.update_grounded();
@@ -387,6 +297,87 @@ impl Game {
 
         self.frame += 1;
         self.score = self.frame / 30;
+    }
+
+    // 落下や移動中のアニメーション処理
+    fn player_move(&mut self) {
+        if self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::None
+            && self.player.state != PlayerState::Falling
+        {
+            self.player.state = PlayerState::Falling;
+
+            self.player.falling_frames = 0;
+        }
+
+        if self.player.state == PlayerState::Falling {
+            self.player.falling_frames += 1;
+            if self.player.falling_frames >= FALL_FRAMES {
+                self.player.falling_frames = 0;
+                self.player.p.y += 1;
+                self.player.state = PlayerState::Standing;
+                self.depth += 1;
+            }
+        }
+
+        if self.player.state == PlayerState::Walking {
+            self.player.walking_frames += 1;
+            if self.player.walking_frames >= WALK_FRAMES {
+                if self.player.direction == Direction::Left {
+                    self.player.p.x -= 1;
+                } else {
+                    self.player.p.x += 1;
+                }
+                self.player.state = PlayerState::Standing;
+            }
+        }
+    }
+
+    // カーソルキーの入力に応じて、掘る、または移動開始する
+    fn dig_or_move(&mut self, command: Command) {
+        match command {
+            Command::Left => {
+                if self.player.state == PlayerState::Standing && self.player.p.x > CELLS_X_MIN {
+                    match self.cell(self.player.p.x - 1, self.player.p.y).cell_type {
+                        CellType::None | CellType::Air => {
+                            self.player.state = PlayerState::Walking;
+                            self.player.direction = Direction::Left;
+                            self.player.walking_frames = 0;
+                        }
+                        CellType::Block => {
+                            self.break_cell(self.player.p.x - 1, self.player.p.y);
+                        }
+                    }
+                }
+            }
+            Command::Right => {
+                if self.player.state == PlayerState::Standing && self.player.p.x < CELLS_X_MAX {
+                    match self.cell(self.player.p.x + 1, self.player.p.y).cell_type {
+                        CellType::None | CellType::Air => {
+                            self.player.state = PlayerState::Walking;
+                            self.player.direction = Direction::Right;
+                            self.player.walking_frames = 0;
+                        }
+                        CellType::Block => {
+                            self.break_cell(self.player.p.x + 1, self.player.p.y);
+                        }
+                    }
+                }
+            }
+            Command::Down => match self.cell(self.player.p.x, self.player.p.y + 1).cell_type {
+                CellType::Block => {
+                    self.break_cell(self.player.p.x, self.player.p.y + 1);
+                }
+                _ => {}
+            },
+            Command::Up => match self.cell(self.player.p.x, self.player.p.y - 1).cell_type {
+                CellType::Block => {
+                    self.break_cell(self.player.p.x, self.player.p.y - 1);
+                }
+                _ => {}
+            },
+            _ => return,
+        }
+        self.print_blocks();
     }
 
     // ブロックが接地しているか判定して記録する
