@@ -236,7 +236,11 @@ impl Game {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             print!("{}: ", y);
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                print!("{:?} ", self.cell(x, y).cell_type);
+                print!(
+                    "{:?}({:?}) ",
+                    self.cell(x, y).cell_type,
+                    self.cell(x, y).grounded
+                );
             }
             print!("\n");
         }
@@ -334,7 +338,8 @@ impl Game {
 
         self.update_grounded();
 
-        // TODO: 接地していないブロックを落とす
+        self.print_blocks();
+        self.fall_ungrounded_blocks();
 
         // TODO: つぶされたらゲームオーバー
 
@@ -387,6 +392,25 @@ impl Game {
                             }
                         };
                     }
+                }
+            }
+        }
+    }
+
+    // 接地していないブロックを落とす
+    fn fall_ungrounded_blocks(&mut self) {
+        // 下からループして
+        for y in (CELLS_Y_MIN..=CELLS_Y_MAX).rev() {
+            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                if self.cell(x, y).cell_type != CellType::None
+                    && !self.cell(x, y).grounded
+                    && y < CELLS_Y_MAX
+                {
+                    // self.cells[(y + 1][x] = self.cells[y][x];
+                    *self.cell_mut(x, y + 1) = *self.cell(x, y);
+                    self.cell_mut(x, y).cell_type = CellType::None;
+                    // *self.cell_mut(x, y) = *self.cell(x, y - 1);
+                    // self.cell_mut(x, y + 1).color = self.cell(x, y).color;
                 }
             }
         }
