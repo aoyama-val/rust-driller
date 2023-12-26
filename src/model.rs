@@ -1,12 +1,6 @@
 use rand::prelude::*;
 use std::time;
 
-pub const CELL_SIZE: i32 = 40;
-pub const INFO_WIDTH: i32 = 100;
-pub const INFO_X: i32 = CELL_SIZE * CELLS_X_LEN;
-pub const SCREEN_WIDTH: i32 = CELL_SIZE * CELLS_X_LEN + INFO_WIDTH;
-pub const SCREEN_HEIGHT: i32 = CELL_SIZE * 12;
-
 pub const UP_SPACE_HEIGHT: i32 = 6; // 初期状態の上の空間の高さ
 pub const NORMAL_BLOCKS_HEIGHT: i32 = 100; // 通常ブロックがある空間の高さ
 pub const CLEAR_BLOCKS_HEIGHT: i32 = 7; // 底にあるクリアブロックの高さ
@@ -254,6 +248,7 @@ impl Game {
     }
 
     // デバッグ用：ブロックの状態を表示
+    #[allow(dead_code)]
     pub fn print_blocks(&self) {
         println!("{:?}", self.player.p);
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {

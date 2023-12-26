@@ -13,8 +13,15 @@ use std::time::{Duration, SystemTime};
 mod model;
 use crate::model::*;
 
+pub const CELL_SIZE: i32 = 40;
+pub const INFO_WIDTH: i32 = 100;
+pub const INFO_X: i32 = CELL_SIZE * CELLS_X_LEN;
+pub const SCREEN_WIDTH: i32 = CELL_SIZE * CELLS_X_LEN + INFO_WIDTH;
+pub const SCREEN_HEIGHT: i32 = CELL_SIZE * 12;
+
 struct Image<'a> {
     texture: Texture<'a>,
+    #[allow(dead_code)]
     w: u32,
     h: u32,
 }
@@ -138,7 +145,7 @@ fn init_mixer() {
 
 fn load_resources<'a>(
     texture_creator: &'a TextureCreator<WindowContext>,
-    canvas: &mut Canvas<Window>,
+    #[allow(unused_variables)] canvas: &mut Canvas<Window>,
     ttf_context: &'a Sdl2TtfContext,
 ) -> Resources<'a> {
     let mut resources = Resources {
