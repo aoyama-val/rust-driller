@@ -409,26 +409,10 @@ impl Game {
                     }
                 }
             }
-            Command::Down => {
+            Command::Up | Command::Down => {
                 if let Some(p) = self.neighbor(self.player.p, direction) {
                     match self.cell(p).cell_type {
                         CellType::Block => self.dig(p),
-                        CellType::Air => {
-                            self.player.p.y += 1;
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            Command::Up => {
-                if let Some(p) = self.neighbor(self.player.p, direction) {
-                    match self.cell(p).cell_type {
-                        CellType::Block => {
-                            self.dig(p);
-                        }
-                        CellType::Air => {
-                            self.player.p.y += 1;
-                        }
                         _ => {}
                     }
                 }
