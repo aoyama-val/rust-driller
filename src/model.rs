@@ -79,6 +79,7 @@ pub struct Cell {
     pub block_life: i32,
     pub grounded: bool,
     pub shaking_frames: i32,
+    pub fell: bool, // このフレームに落下したか
 }
 
 impl Cell {
@@ -90,6 +91,7 @@ impl Cell {
             block_life: BLOCK_LIFE_MAX,
             grounded: false,
             shaking_frames: -1,
+            fell: false,
         }
     }
 
@@ -245,6 +247,12 @@ impl Game {
             }
         }
 
+        // tmp
+        for y in 9..13 {
+            game.cell_mut(5, y).cell_type = CellType::Block;
+            game.cell_mut(5, y).color = BlockColor::Yellow;
+        }
+
         game.print_blocks();
         game
     }
@@ -277,6 +285,8 @@ impl Game {
 
         self.player_move();
 
+        self.fall_ungrounded_blocks();
+
         self.set_leaders();
 
         self.erase_connected_blocks();
@@ -293,14 +303,6 @@ impl Game {
 
         self.update_grounded();
 
-        self.fall_ungrounded_blocks();
-
-        // ブロックにつぶされたらゲームオーバー
-        if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Block {
-            self.is_over = true;
-            self.requested_sounds.push("crash.wav");
-        }
-
         // エアを取得
         if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Air {
             self.cell_mut(self.player.p.x, self.player.p.y).cell_type = CellType::None;
@@ -311,6 +313,12 @@ impl Game {
         // エア消費
         self.player.air -= 1;
         if self.player.air <= 0 {
+            self.is_over = true;
+            self.requested_sounds.push("crash.wav");
+        }
+
+        // ブロックにつぶされたらゲームオーバー
+        if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Block {
             self.is_over = true;
             self.requested_sounds.push("crash.wav");
         }
@@ -408,11 +416,11 @@ impl Game {
         self.print_blocks();
     }
 
-    // つながっているブロックを消す
+    // 落下したブロックが指定個数以上つながったら消す
     fn erase_connected_blocks(&mut self) {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if self.cell(x, y).is_leader(x, y) {
+                if self.cell(x, y).cell_type == CellType::Block && self.cell(x, y).fell {
                     let component = self.get_component(x, y);
                     if component.len() >= 4 {
                         for point in &component {
@@ -463,6 +471,7 @@ impl Game {
         // 下からループして
         for y in (CELLS_Y_MIN..=CELLS_Y_MAX).rev() {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
+                self.cell_mut(x, y).fell = false;
                 if self.cell(x, y).cell_type != CellType::None {
                     if !self.cell(x, y).grounded {
                         // 落下させる前に揺らす
@@ -475,6 +484,7 @@ impl Game {
                         if self.cell(x, y).shaking_frames >= SHAKE_FRAMES {
                             *self.cell_mut(x, y + 1) = *self.cell(x, y);
                             self.cell_mut(x, y).cell_type = CellType::None;
+                            self.cell_mut(x, y + 1).fell = true;
                         }
                     } else {
                         self.cell_mut(x, y).shaking_frames = -1;
