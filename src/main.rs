@@ -75,25 +75,12 @@ pub fn main() -> Result<(), String> {
 
     'running: loop {
         let started = SystemTime::now();
+        let mut is_keydown = false;
 
         let mut command = Command::None;
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-                Event::KeyDown {
-                    keycode: Some(Keycode::Space),
-                    ..
-                } => {
-                    if game.is_over {
-                        game = Game::new();
-                    } else if game.is_clear {
-                        game = game.next_stage();
-                    }
-                }
+                Event::Quit { .. } => break 'running,
                 Event::KeyDown {
                     keycode: Some(code),
                     ..
@@ -103,14 +90,27 @@ pub fn main() -> Result<(), String> {
                         Keycode::Right => command = Command::Right,
                         Keycode::Down => command = Command::Down,
                         Keycode::Up => command = Command::Up,
+                        Keycode::Escape => {
+                            break 'running;
+                        }
                         Keycode::F1 => game.toggle_debug(),
+                        Keycode::Space => {
+                            if game.is_over {
+                                game = Game::new();
+                            } else if game.is_clear {
+                                game = game.next_stage();
+                            }
+                        }
                         _ => {}
                     };
+                    is_keydown = true;
                 }
                 _ => {}
             }
         }
-        game.update(command);
+        if !game.is_debug || is_keydown {
+            game.update(command);
+        }
         render(&mut canvas, &game, &mut resources)?;
 
         play_sounds(&mut game, &resources);
