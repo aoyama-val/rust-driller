@@ -145,7 +145,7 @@ impl std::fmt::Debug for Cell {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Point {
     pub x: i32,
     pub y: i32,
