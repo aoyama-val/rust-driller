@@ -316,7 +316,7 @@ impl Game {
 
         match command {
             Command::Left | Command::Right | Command::Up | Command::Down => {
-                self.dig_or_move(command);
+                self.dig_or_walk(Direction::from_command(command.clone()));
                 if self.is_clear {
                     return;
                 }
@@ -389,13 +389,12 @@ impl Game {
         }
     }
 
-    // カーソルキーの入力に応じて、掘る、または移動開始する
-    fn dig_or_move(&mut self, command: Command) {
-        let direction = Direction::from_command(command.clone());
-        match command {
-            Command::Left | Command::Right => {
+    // 指定方向に掘る、または歩行開始する
+    fn dig_or_walk(&mut self, direction: Direction) {
+        match direction {
+            Direction::Left | Direction::Right => {
                 if self.player.state == PlayerState::Standing {
-                    if let Some(p) = self.neighbor(self.player.p, direction.clone()) {
+                    if let Some(p) = self.neighbor(self.player.p, direction) {
                         match self.cell(p).cell_type {
                             CellType::None | CellType::Air => {
                                 self.player.state = PlayerState::Walking;
@@ -409,7 +408,7 @@ impl Game {
                     }
                 }
             }
-            Command::Up | Command::Down => {
+            Direction::Up | Direction::Down => {
                 if let Some(p) = self.neighbor(self.player.p, direction) {
                     match self.cell(p).cell_type {
                         CellType::Block => self.dig(p),
@@ -417,7 +416,6 @@ impl Game {
                     }
                 }
             }
-            _ => return,
         }
     }
 
