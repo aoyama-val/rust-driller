@@ -9,6 +9,7 @@ use sdl2::sys::Font;
 use sdl2::ttf::Sdl2TtfContext;
 use sdl2::video::{Window, WindowContext};
 use std::collections::HashMap;
+use std::fs;
 use std::path::Path;
 use std::time::{Duration, SystemTime};
 mod model;
@@ -147,34 +148,45 @@ fn load_resources<'a>(
         fonts: HashMap::new(),
     };
 
-    let image_paths = ["numbers.bmp"];
-    for path in image_paths {
-        let full_path = "resources/image/".to_string() + path;
-        let temp_surface = sdl2::surface::Surface::load_bmp(Path::new(&full_path)).unwrap();
-        let texture = texture_creator
-            .create_texture_from_surface(&temp_surface)
-            .expect(&format!("cannot load image: {}", path));
+    let entries = fs::read_dir("resources/image").unwrap();
+    for entry in entries {
+        let path = entry.unwrap().path();
+        let path_str = path.to_str().unwrap();
+        if path_str.ends_with(".bmp") {
+            let temp_surface = sdl2::surface::Surface::load_bmp(&path).unwrap();
+            let texture = texture_creator
+                .create_texture_from_surface(&temp_surface)
+                .expect(&format!("cannot load image: {}", path_str));
 
-        let image = Image::new(texture);
-        resources.images.insert(path.to_string(), image);
+            let basename = path.file_name().unwrap().to_str().unwrap();
+            let image = Image::new(texture);
+            resources.images.insert(basename.to_string(), image);
+        }
     }
 
-    let sound_paths = ["break_brown.wav", "clear.wav", "crash.wav", "shrink.wav"];
-    for path in sound_paths {
-        let full_path = "resources/sound/".to_string() + path;
-        let chunk =
-            mixer::Chunk::from_file(full_path).expect(&format!("cannot load sound: {}", path));
-        resources.chunks.insert(path.to_string(), chunk);
+    let entries = fs::read_dir("./resources/sound").unwrap();
+    for entry in entries {
+        let path = entry.unwrap().path();
+        let path_str = path.to_str().unwrap();
+        if path_str.ends_with(".wav") {
+            let chunk = mixer::Chunk::from_file(path_str)
+                .expect(&format!("cannot load sound: {}", path_str));
+            let basename = path.file_name().unwrap().to_str().unwrap();
+            resources.chunks.insert(basename.to_string(), chunk);
+        }
     }
 
-    let font_paths = ["boxfont2.ttf"];
-    for path in font_paths {
-        let full_path = "resources/font/".to_string() + path;
-
-        let font = ttf_context
-            .load_font(full_path, 32)
-            .expect(&format!("cannot load font: {}", path));
-        resources.fonts.insert(path.to_string(), font);
+    let entries = fs::read_dir("./resources/font").unwrap();
+    for entry in entries {
+        let path = entry.unwrap().path();
+        let path_str = path.to_str().unwrap();
+        if path_str.ends_with(".ttf") {
+            let font = ttf_context
+                .load_font(path_str, 32)
+                .expect(&format!("cannot load font: {}", path_str));
+            let basename = path.file_name().unwrap().to_str().unwrap();
+            resources.fonts.insert(basename.to_string(), font);
+        }
     }
 
     resources
