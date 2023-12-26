@@ -25,7 +25,7 @@ pub const FPS: i32 = 30;
 pub const WALK_FRAMES: i32 = 3; // プレイヤーが1マス歩くのにかかるフレーム数
 pub const FALL_FRAMES: i32 = 3; // プレイヤーが1マス落ちるのにかかるフレーム数
                                 // pub const SHAKE_FRAMES: i32 = 48; // 落下予定のブロックがぐらついているフレーム数（揺れるアニメーションが片側4フレームなので、4の倍数）
-pub const SHAKE_FRAMES: i32 = 4; // 落下予定のブロックがぐらついているフレーム数（揺れるアニメーションが片側4フレームなので、4の倍数）
+pub const SHAKE_FRAMES: i32 = 43; // 落下予定のブロックがぐらついているフレーム数（揺れるアニメーションが片側4フレームなので、4の倍数 - 1）
 
 pub enum Command {
     None,
