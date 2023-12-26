@@ -21,6 +21,7 @@ pub const FALL_FRAMES: i32 = 3; // プレイヤーが1マス落ちるのにか�
                                 // pub const SHAKE_FRAMES: i32 = 48; // 落下予定のブロックがぐらついているフレーム数（揺れるアニメーションが片側4フレームなので、4の倍数）
 pub const SHAKE_FRAMES: i32 = 43; // 落下予定のブロックがぐらついているフレーム数（揺れるアニメーションが片側4フレームなので、4の倍数 - 1）
 
+#[derive(Clone)]
 pub enum Command {
     None,
     Left,
@@ -33,6 +34,29 @@ pub enum Command {
 pub enum Direction {
     Left,
     Right,
+    Up,
+    Down,
+}
+
+impl Direction {
+    pub fn all() -> [Direction; 4] {
+        [
+            Direction::Left,
+            Direction::Right,
+            Direction::Up,
+            Direction::Down,
+        ]
+    }
+
+    pub fn from_command(command: Command) -> Direction {
+        match command {
+            Command::Left => Direction::Left,
+            Command::Right => Direction::Right,
+            Command::Up => Direction::Up,
+            Command::Down => Direction::Down,
+            _ => panic!(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -129,10 +153,11 @@ pub struct Point {
 
 impl Point {
     pub fn new(x: i32, y: i32) -> Self {
-        Point {
-            x: (CELLS_X_LEN + x) % CELLS_X_LEN,
-            y: (CELLS_Y_LEN + y) % CELLS_Y_LEN,
-        }
+        assert!(x >= CELLS_X_MIN);
+        assert!(x <= CELLS_X_MAX);
+        assert!(y >= CELLS_Y_MIN);
+        assert!(y <= CELLS_Y_MAX);
+        Point { x: x, y: y }
     }
 }
 
@@ -360,53 +385,50 @@ impl Game {
 
     // カーソルキーの入力に応じて、掘る、または移動開始する
     fn dig_or_move(&mut self, command: Command) {
+        let direction = Direction::from_command(command.clone());
         match command {
-            Command::Left => {
-                if self.player.state == PlayerState::Standing && self.player.p.x > CELLS_X_MIN {
-                    match self.cell(self.player.p.x - 1, self.player.p.y).cell_type {
-                        CellType::None | CellType::Air => {
-                            self.player.state = PlayerState::Walking;
-                            self.player.direction = Direction::Left;
-                            self.player.walking_frames = 0;
-                        }
-                        CellType::Block => {
-                            self.dig(self.player.p.x - 1, self.player.p.y);
-                        }
-                    }
-                }
-            }
-            Command::Right => {
-                if self.player.state == PlayerState::Standing && self.player.p.x < CELLS_X_MAX {
-                    match self.cell(self.player.p.x + 1, self.player.p.y).cell_type {
-                        CellType::None | CellType::Air => {
-                            self.player.state = PlayerState::Walking;
-                            self.player.direction = Direction::Right;
-                            self.player.walking_frames = 0;
-                        }
-                        CellType::Block => {
-                            self.dig(self.player.p.x + 1, self.player.p.y);
+            Command::Left | Command::Right => {
+                if self.player.state == PlayerState::Standing {
+                    if let Some(p) =
+                        self.neighbor(self.player.p.x, self.player.p.y, direction.clone())
+                    {
+                        match self.cell(p.x, p.y).cell_type {
+                            CellType::None | CellType::Air => {
+                                self.player.state = PlayerState::Walking;
+                                self.player.direction = direction;
+                                self.player.walking_frames = 0;
+                            }
+                            CellType::Block => {
+                                self.dig(p.x, p.y);
+                            }
                         }
                     }
                 }
             }
-            Command::Down => match self.cell(self.player.p.x, self.player.p.y + 1).cell_type {
-                CellType::Block => {
-                    self.dig(self.player.p.x, self.player.p.y + 1);
+            Command::Down => {
+                if let Some(p) = self.neighbor(self.player.p.x, self.player.p.y, direction) {
+                    match self.cell(p.x, p.y).cell_type {
+                        CellType::Block => self.dig(p.x, p.y),
+                        CellType::Air => {
+                            self.player.p.y += 1;
+                        }
+                        _ => {}
+                    }
                 }
-                CellType::Air => {
-                    self.player.p.y += 1;
+            }
+            Command::Up => {
+                if let Some(p) = self.neighbor(self.player.p.x, self.player.p.y, direction) {
+                    match self.cell(p.x, p.y).cell_type {
+                        CellType::Block => {
+                            self.dig(p.x, p.y);
+                        }
+                        CellType::Air => {
+                            self.player.p.y += 1;
+                        }
+                        _ => {}
+                    }
                 }
-                _ => {}
-            },
-            Command::Up => match self.cell(self.player.p.x, self.player.p.y - 1).cell_type {
-                CellType::Block => {
-                    self.dig(self.player.p.x, self.player.p.y - 1);
-                }
-                CellType::Air => {
-                    self.player.p.y += 1;
-                }
-                _ => {}
-            },
+            }
             _ => return,
         }
     }
@@ -565,29 +587,48 @@ impl Game {
         }
 
         self.cell_mut(x, y).leader = Some(p);
-        if x < CELLS_X_MAX
-            && self.cell(x + 1, y).color == self.cell(x, y).color
-            && self.cell(x + 1, y).leader == None
-        {
-            self.set_leader(x + 1, y, p);
+        let directions = Direction::all();
+        for direction in directions {
+            if let Some(neighbor) = self.neighbor(x, y, direction) {
+                if self.cell(neighbor.x, neighbor.y).color == self.cell(x, y).color
+                    && self.cell(neighbor.x, neighbor.y).leader == None
+                {
+                    self.set_leader(neighbor.x, neighbor.y, p);
+                }
+            }
         }
-        if x > CELLS_X_MIN
-            && self.cell(x - 1, y).color == self.cell(x, y).color
-            && self.cell(x - 1, y).leader == None
-        {
-            self.set_leader(x - 1, y, p);
-        }
-        if y > CELLS_Y_MIN
-            && self.cell(x, y - 1).color == self.cell(x, y).color
-            && self.cell(x, y - 1).leader == None
-        {
-            self.set_leader(x, y - 1, p);
-        }
-        if y < CELLS_Y_MAX
-            && self.cell(x, y + 1).color == self.cell(x, y).color
-            && self.cell(x, y + 1).leader == None
-        {
-            self.set_leader(x, y + 1, p);
+    }
+
+    pub fn neighbor(&self, x: i32, y: i32, direction: Direction) -> Option<Point> {
+        match direction {
+            Direction::Left => {
+                if x - 1 >= CELLS_X_MIN {
+                    Some(Point::new(x - 1, y))
+                } else {
+                    None
+                }
+            }
+            Direction::Right => {
+                if x + 1 <= CELLS_X_MAX {
+                    Some(Point::new(x + 1, y))
+                } else {
+                    None
+                }
+            }
+            Direction::Up => {
+                if y - 1 >= CELLS_Y_MIN {
+                    Some(Point::new(x, y - 1))
+                } else {
+                    None
+                }
+            }
+            Direction::Down => {
+                if y + 1 <= CELLS_Y_MAX {
+                    Some(Point::new(x, y + 1))
+                } else {
+                    None
+                }
+            }
         }
     }
 
