@@ -39,8 +39,6 @@ pub enum Command {
 pub enum Direction {
     Left,
     Right,
-    Down,
-    Up,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -96,15 +94,6 @@ impl Cell {
             falling_frames: -1,
             fell: false,
         }
-    }
-
-    fn is_leader(&self, x: i32, y: i32) -> bool {
-        if let Some(leader) = self.leader {
-            if leader.x == x && leader.y == y {
-                return true;
-            }
-        }
-        return false;
     }
 }
 
@@ -209,7 +198,7 @@ impl Game {
             .expect("SystemTime before UNIX EPOCH!")
             .as_secs();
         let rng = StdRng::seed_from_u64(timestamp);
-        println!("timestamp (random seed) = {}", timestamp);
+        println!("random seed = {}", timestamp);
         // let rng = StdRng::seed_from_u64(0);
 
         let mut game = Game {
@@ -256,13 +245,6 @@ impl Game {
             }
         }
 
-        // tmp
-        for y in 9..13 {
-            game.cell_mut(5, y).cell_type = CellType::Block;
-            game.cell_mut(5, y).color = BlockColor::Yellow;
-        }
-
-        game.print_blocks();
         game
     }
 
@@ -271,6 +253,7 @@ impl Game {
         println!("is_debug: {}", self.is_debug);
     }
 
+    // デバッグ用：ブロックの状態を表示
     pub fn print_blocks(&self) {
         println!("{:?}", self.player.p);
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
@@ -342,20 +325,22 @@ impl Game {
         self.camera_y = self.player.p.y - 5;
     }
 
-    // 落下や移動中のアニメーション処理
+    // 落下や歩行中のアニメーション処理
     fn player_move(&mut self) {
+        // 下に足場が無ければ落下中にする
         if (self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::None
             || self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::Air)
             && self.player.state != PlayerState::Falling
         {
             self.player.state = PlayerState::Falling;
-
             self.player.falling_frames = 0;
         }
 
+        // 落下中
         if self.player.state == PlayerState::Falling {
             self.player.falling_frames += 1;
             if self.player.falling_frames >= FALL_FRAMES {
+                // 1マス分落下完了
                 self.player.falling_frames = 0;
                 self.player.p.y += 1;
                 self.player.state = PlayerState::Standing;
@@ -363,9 +348,11 @@ impl Game {
             }
         }
 
+        // 歩行中
         if self.player.state == PlayerState::Walking {
             self.player.walking_frames += 1;
             if self.player.walking_frames >= WALK_FRAMES {
+                // 1マス分歩行完了
                 if self.player.direction == Direction::Left {
                     self.player.p.x -= 1;
                 } else {
@@ -388,7 +375,7 @@ impl Game {
                             self.player.walking_frames = 0;
                         }
                         CellType::Block => {
-                            self.break_cell(self.player.p.x - 1, self.player.p.y);
+                            self.dig(self.player.p.x - 1, self.player.p.y);
                         }
                     }
                 }
@@ -402,14 +389,14 @@ impl Game {
                             self.player.walking_frames = 0;
                         }
                         CellType::Block => {
-                            self.break_cell(self.player.p.x + 1, self.player.p.y);
+                            self.dig(self.player.p.x + 1, self.player.p.y);
                         }
                     }
                 }
             }
             Command::Down => match self.cell(self.player.p.x, self.player.p.y + 1).cell_type {
                 CellType::Block => {
-                    self.break_cell(self.player.p.x, self.player.p.y + 1);
+                    self.dig(self.player.p.x, self.player.p.y + 1);
                 }
                 CellType::Air => {
                     self.player.p.y += 1;
@@ -418,7 +405,7 @@ impl Game {
             },
             Command::Up => match self.cell(self.player.p.x, self.player.p.y - 1).cell_type {
                 CellType::Block => {
-                    self.break_cell(self.player.p.x, self.player.p.y - 1);
+                    self.dig(self.player.p.x, self.player.p.y - 1);
                 }
                 CellType::Air => {
                     self.player.p.y += 1;
@@ -427,7 +414,6 @@ impl Game {
             },
             _ => return,
         }
-        // self.print_blocks();
     }
 
     // 落下したブロックが指定個数以上つながったら消す
@@ -529,7 +515,8 @@ impl Game {
         result
     }
 
-    fn break_cell(&mut self, cell_x: i32, cell_y: i32) {
+    // 指定された箇所を掘る
+    fn dig(&mut self, cell_x: i32, cell_y: i32) {
         if self.cell(cell_x, cell_y).color == BlockColor::Clear {
             self.is_clear = true;
             self.requested_sounds.push("clear.wav");
@@ -559,7 +546,7 @@ impl Game {
         }
     }
 
-    // 全ブロックのつながりを判定
+    // 全ブロックのつながり方を判定
     fn set_leaders(&mut self) {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {

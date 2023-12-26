@@ -3,14 +3,12 @@ use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::Keycode;
 use sdl2::mixer;
 use sdl2::pixels::Color;
-use sdl2::rect::{Point, Rect};
+use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Canvas, Texture, TextureCreator};
-use sdl2::sys::Font;
 use sdl2::ttf::Sdl2TtfContext;
 use sdl2::video::{Window, WindowContext};
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
 use std::time::{Duration, SystemTime};
 mod model;
 use crate::model::*;
@@ -200,11 +198,6 @@ fn render(
 ) -> Result<(), String> {
     canvas.set_draw_color(Color::RGB(0, 0, 0));
     canvas.clear();
-    // println!(
-    //     "cell(0, 7) = {:?}, cell(0, 8) = {:?}",
-    //     game.cell(0, 7),
-    //     game.cell(0, 8)
-    // );
 
     // render cells
     for x in CELLS_X_MIN..=CELLS_X_MAX {
@@ -238,8 +231,6 @@ fn render(
                         ((CELL_SIZE * y) + (CELL_SIZE / 2) + offset_y) as i16,
                         (CELL_SIZE / 2) as i16,
                         (CELL_SIZE / 4) as i16,
-                        // Color::RGB(209, 220, 230),
-                        // Color::RGB(0x24, 0x93, 0x74),
                         Color::RGB(0x63, 0xc1, 0xa5),
                     )?;
                 }
@@ -264,18 +255,6 @@ fn render(
                     ))?;
                 }
             }
-            // 接地していないところに半透明の赤（デバッグ用）
-            // if game.cell(x, cell_y).cell_type != CellType::None {
-            //     if game.cell(x, cell_y).grounded == false {
-            //         canvas.set_draw_color(Color::RGBA(255, 0, 0, 128));
-            //         canvas.fill_rect(Rect::new(
-            //             CELL_SIZE as i32 * x,
-            //             CELL_SIZE as i32 * y,
-            //             CELL_SIZE as u32,
-            //             CELL_SIZE as u32,
-            //         ))?;
-            //     }
-            // }
         }
     }
     // render player
@@ -382,9 +361,7 @@ fn render(
     }
 
     if game.is_debug {
-        let font = resources.fonts.get_mut("boxfont2.ttf").unwrap();
         let frame_str = format!("{0: >6}", game.frame);
-
         canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
         canvas.fill_rect(Rect::new(0, 0, 50, 16))?;
         render_number(canvas, resources, 0, 0, 1.0, frame_str);
