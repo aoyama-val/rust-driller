@@ -503,8 +503,6 @@ impl Game {
                                 *self.cell_mut(x, y + 1) = *self.cell(x, y);
                                 self.cell_mut(x, y).cell_type = CellType::None;
                                 self.cell_mut(x, y + 1).fell = true;
-                                self.cell_mut(x, y + 1).shaking_frames = -1;
-                                self.cell_mut(x, y + 1).falling_frames = -1;
                             }
                         }
                     }
