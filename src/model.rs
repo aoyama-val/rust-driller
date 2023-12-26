@@ -339,7 +339,8 @@ impl Game {
 
     // 落下や移動中のアニメーション処理
     fn player_move(&mut self) {
-        if self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::None
+        if (self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::None
+            || self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::Air)
             && self.player.state != PlayerState::Falling
         {
             self.player.state = PlayerState::Falling;
