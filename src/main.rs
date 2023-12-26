@@ -98,12 +98,13 @@ pub fn main() -> Result<(), String> {
                     keycode: Some(code),
                     ..
                 } => {
-                    command = match code {
-                        Keycode::Left => Command::Left,
-                        Keycode::Right => Command::Right,
-                        Keycode::Down => Command::Down,
-                        Keycode::Up => Command::Up,
-                        _ => Command::None,
+                    match code {
+                        Keycode::Left => command = Command::Left,
+                        Keycode::Right => command = Command::Right,
+                        Keycode::Down => command = Command::Down,
+                        Keycode::Up => command = Command::Up,
+                        Keycode::F1 => game.toggle_debug(),
+                        _ => {}
                     };
                 }
                 _ => {}
@@ -182,7 +183,7 @@ fn load_resources<'a>(
         let path_str = path.to_str().unwrap();
         if path_str.ends_with(".ttf") {
             let font = ttf_context
-                .load_font(path_str, 32)
+                .load_font(path_str, 32) // FIXME: サイズ固定になっちゃってる
                 .expect(&format!("cannot load font: {}", path_str));
             let basename = path.file_name().unwrap().to_str().unwrap();
             resources.fonts.insert(basename.to_string(), font);
@@ -378,6 +379,15 @@ fn render(
             240,
             Color::RGBA(255, 255, 0, 255),
         );
+    }
+
+    if game.is_debug {
+        let font = resources.fonts.get_mut("boxfont2.ttf").unwrap();
+        let frame_str = format!("{0: >6}", game.frame);
+
+        canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
+        canvas.fill_rect(Rect::new(0, 0, 50, 16))?;
+        render_number(canvas, resources, 0, 0, 1.0, frame_str);
     }
 
     canvas.present();

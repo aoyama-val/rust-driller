@@ -190,6 +190,7 @@ impl Player {
 
 pub struct Game {
     pub rng: StdRng,
+    pub is_debug: bool,
     pub is_over: bool,
     pub is_clear: bool,
     pub frame: i32,
@@ -214,9 +215,10 @@ impl Game {
 
         let mut game = Game {
             rng: rng,
+            is_debug: false,
             is_over: false,
             is_clear: false,
-            frame: 0,
+            frame: -1,
             player: Player::new(),
             score: 0,
             requested_sounds: Vec::new(),
@@ -266,6 +268,11 @@ impl Game {
         game
     }
 
+    pub fn toggle_debug(&mut self) {
+        self.is_debug = !self.is_debug;
+        println!("is_debug: {}", self.is_debug);
+    }
+
     pub fn print_blocks(&self) {
         println!("{:?}", self.player.p);
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
@@ -288,6 +295,8 @@ impl Game {
     }
 
     pub fn update(&mut self, command: Command) {
+        self.frame += 1;
+
         if self.is_over || self.is_clear {
             return;
         }
@@ -334,7 +343,6 @@ impl Game {
 
         self.camera_y = self.player.p.y - 5;
 
-        self.frame += 1;
         self.score = self.frame / 30;
     }
 
