@@ -506,6 +506,13 @@ impl Game {
                                 *self.cell_mut(down) = *self.cell(p);
                                 self.cell_mut(p).cell_type = CellType::None;
                                 self.cell_mut(down).fell = true;
+
+                                // 下にエアがあったら潰す
+                                if let Some(down2) = self.neighbor(down, Direction::Down) {
+                                    if self.cell(down2).cell_type == CellType::Air {
+                                        self.cell_mut(down2).cell_type = CellType::None;
+                                    }
+                                }
                             }
                         }
                     }
