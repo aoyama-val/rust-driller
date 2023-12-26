@@ -21,7 +21,7 @@ pub const FALL_FRAMES: i32 = 3; // プレイヤーが1マス落ちるのにか�
                                 // pub const SHAKE_FRAMES: i32 = 48; // 落下予定のブロックがぐらついているフレーム数（揺れるアニメーションが片側4フレームなので、4の倍数）
 pub const SHAKE_FRAMES: i32 = 43; // 落下予定のブロックがぐらついているフレーム数（揺れるアニメーションが片側4フレームなので、4の倍数 - 1）
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Command {
     None,
     Left,
@@ -30,7 +30,7 @@ pub enum Command {
     Up,
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Direction {
     Left,
     Right,
@@ -236,11 +236,12 @@ impl Game {
         // ランダムに通常ブロックを敷き詰める
         for y in UP_SPACE_HEIGHT..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                game.cell_mut(x, y).cell_type = CellType::Block;
+                let p = Point::new(x, y);
+                game.cell_mut(&p).cell_type = CellType::Block;
                 if game.rng.gen_bool(0.05) {
-                    game.cell_mut(x, y).color = BlockColor::Brown;
+                    game.cell_mut(&p).color = BlockColor::Brown;
                 } else {
-                    game.cell_mut(x, y).color = BlockColor::from_u32(game.rng.gen::<u32>());
+                    game.cell_mut(&p).color = BlockColor::from_u32(game.rng.gen::<u32>());
                 }
             }
         }
@@ -251,7 +252,8 @@ impl Game {
             let x = game.rng.gen::<u32>() % (CELLS_X_LEN as u32);
             let y = depth as u32 + game.rng.gen::<u32>() % (AIR_SPAWN_INTERVAL as u32);
             if y < CELLS_Y_LEN as u32 {
-                game.cell_mut(x as i32, y as i32).cell_type = CellType::Air;
+                let p = Point::new(x as i32, y as i32);
+                game.cell_mut(&p).cell_type = CellType::Air;
             }
             depth += AIR_SPAWN_INTERVAL;
         }
@@ -259,8 +261,9 @@ impl Game {
         // クリアブロックを配置
         for y in 0..CLEAR_BLOCKS_HEIGHT {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                game.cell_mut(x, CELLS_Y_MAX - y).cell_type = CellType::Block;
-                game.cell_mut(x, CELLS_Y_MAX - y).color = BlockColor::Clear;
+                let p = Point::new(x, CELLS_Y_MAX - y);
+                game.cell_mut(&p).cell_type = CellType::Block;
+                game.cell_mut(&p).color = BlockColor::Clear;
             }
         }
 
@@ -279,10 +282,11 @@ impl Game {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             print!("{: >3}: ", y);
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if self.player.p.x == x && self.player.p.y == y {
-                    print!("\x1b[0;31m{:?} \x1b[0m", self.cell(x, y));
+                let p = Point::new(x, y);
+                if self.player.p == p {
+                    print!("\x1b[0;31m{:?} \x1b[0m", self.cell(&p));
                 } else {
-                    print!("{:?} ", self.cell(x, y));
+                    print!("{:?} ", self.cell(&p));
                 }
             }
             print!("\n");
@@ -323,8 +327,8 @@ impl Game {
         self.update_grounded();
 
         // エアを取得
-        if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Air {
-            self.cell_mut(self.player.p.x, self.player.p.y).cell_type = CellType::None;
+        if self.cell(&self.player.p).cell_type == CellType::Air {
+            self.cell_mut(&self.player.p.clone()).cell_type = CellType::None;
             self.player.air = clamp(0, self.player.air + (AIR_MAX as f32 * 0.2) as i32, AIR_MAX);
             self.requested_sounds.push("shrink.wav");
         }
@@ -337,7 +341,7 @@ impl Game {
         }
 
         // ブロックにつぶされたらゲームオーバー
-        if self.cell(self.player.p.x, self.player.p.y).cell_type == CellType::Block {
+        if self.cell(&self.player.p).cell_type == CellType::Block {
             self.is_over = true;
             self.requested_sounds.push("crash.wav");
         }
@@ -348,12 +352,14 @@ impl Game {
     // 落下や歩行中のアニメーション処理
     fn player_move(&mut self) {
         // 下に足場が無ければ落下中にする
-        if (self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::None
-            || self.cell(self.player.p.x, self.player.p.y + 1).cell_type == CellType::Air)
-            && self.player.state != PlayerState::Falling
-        {
-            self.player.state = PlayerState::Falling;
-            self.player.falling_frames = 0;
+        if let Some(down) = self.neighbor(&self.player.p, Direction::Down) {
+            if (self.cell(&down).cell_type == CellType::None
+                || self.cell(&down).cell_type == CellType::Air)
+                && self.player.state != PlayerState::Falling
+            {
+                self.player.state = PlayerState::Falling;
+                self.player.falling_frames = 0;
+            }
         }
 
         // 落下中
@@ -389,26 +395,24 @@ impl Game {
         match command {
             Command::Left | Command::Right => {
                 if self.player.state == PlayerState::Standing {
-                    if let Some(p) =
-                        self.neighbor(self.player.p.x, self.player.p.y, direction.clone())
-                    {
-                        match self.cell(p.x, p.y).cell_type {
+                    if let Some(p) = self.neighbor(&self.player.p, direction.clone()) {
+                        match self.cell(&p).cell_type {
                             CellType::None | CellType::Air => {
                                 self.player.state = PlayerState::Walking;
                                 self.player.direction = direction;
                                 self.player.walking_frames = 0;
                             }
                             CellType::Block => {
-                                self.dig(p.x, p.y);
+                                self.dig(&p);
                             }
                         }
                     }
                 }
             }
             Command::Down => {
-                if let Some(p) = self.neighbor(self.player.p.x, self.player.p.y, direction) {
-                    match self.cell(p.x, p.y).cell_type {
-                        CellType::Block => self.dig(p.x, p.y),
+                if let Some(p) = self.neighbor(&self.player.p, direction) {
+                    match self.cell(&p).cell_type {
+                        CellType::Block => self.dig(&p),
                         CellType::Air => {
                             self.player.p.y += 1;
                         }
@@ -417,10 +421,10 @@ impl Game {
                 }
             }
             Command::Up => {
-                if let Some(p) = self.neighbor(self.player.p.x, self.player.p.y, direction) {
-                    match self.cell(p.x, p.y).cell_type {
+                if let Some(p) = self.neighbor(&self.player.p, direction) {
+                    match self.cell(&p).cell_type {
                         CellType::Block => {
-                            self.dig(p.x, p.y);
+                            self.dig(&p);
                         }
                         CellType::Air => {
                             self.player.p.y += 1;
@@ -437,11 +441,12 @@ impl Game {
     fn erase_connected_blocks(&mut self) {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if self.cell(x, y).cell_type == CellType::Block && self.cell(x, y).fell {
-                    let component = self.get_component(x, y);
+                let p = Point::new(x, y);
+                if self.cell(&p).cell_type == CellType::Block && self.cell(&p).fell {
+                    let component = self.get_component(&p);
                     if component.len() >= 4 {
                         for point in &component {
-                            self.cell_mut(point.x, point.y).cell_type = CellType::None;
+                            self.cell_mut(&point).cell_type = CellType::None;
                         }
                     }
                 }
@@ -454,28 +459,31 @@ impl Game {
         // いったん全部falseにする
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                self.cell_mut(x, y).grounded = false;
+                let p = Point::new(x, y);
+                self.cell_mut(&p).grounded = false;
             }
         }
         // 下からループして
         for y in (CELLS_Y_MIN..=CELLS_Y_MAX).rev() {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if self.cell(x, y).grounded == false {
+                let p = Point::new(x, y);
+                if self.cell(&p).grounded == false {
                     // 一番底のクリアブロック、または1個下に接地したブロックまたはエアがあるならそこも接地している
-                    let grounded = y == CELLS_Y_MAX
-                        || (self.cell(x, y + 1).cell_type != CellType::None
-                            && self.cell(x, y + 1).grounded);
+                    let down = self.neighbor(&p, Direction::Down);
+                    let grounded = down == None
+                        || (self.cell(&down.unwrap()).cell_type != CellType::None
+                            && self.cell(&down.unwrap()).grounded);
                     if grounded {
-                        match self.cell(x, y).cell_type {
+                        match self.cell(&p).cell_type {
                             CellType::None => {}
-                            CellType::Air => self.cell_mut(x, y).grounded = true,
+                            CellType::Air => self.cell_mut(&p).grounded = true,
                             CellType::Block => {
                                 // つながったブロックを全部接地にする
-                                let component = self.get_component(x, y);
+                                let component = self.get_component(&p);
                                 for point in &component {
-                                    self.cell_mut(point.x, point.y).grounded = true;
-                                    self.cell_mut(point.x, point.y).shaking_frames = -1;
-                                    self.cell_mut(point.x, point.y).falling_frames = -1;
+                                    self.cell_mut(&point).grounded = true;
+                                    self.cell_mut(&point).shaking_frames = -1;
+                                    self.cell_mut(&point).falling_frames = -1;
                                 }
                             }
                         };
@@ -490,27 +498,30 @@ impl Game {
         // 下からループして
         for y in (CELLS_Y_MIN..=CELLS_Y_MAX).rev() {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                self.cell_mut(x, y).fell = false;
-                if self.cell(x, y).cell_type != CellType::None {
-                    if !self.cell(x, y).grounded {
-                        if self.cell(x, y).shaking_frames < 0 {
+                let p = Point::new(x, y);
+
+                self.cell_mut(&p).fell = false;
+                if self.cell(&p).cell_type != CellType::None {
+                    if !self.cell(&p).grounded {
+                        if self.cell(&p).shaking_frames < 0 {
                             // 揺らし開始
-                            self.cell_mut(x, y).shaking_frames = 0;
-                        } else if self.cell(x, y).shaking_frames <= SHAKE_FRAMES {
+                            self.cell_mut(&p).shaking_frames = 0;
+                        } else if self.cell(&p).shaking_frames <= SHAKE_FRAMES {
                             // 揺らし中
-                            self.cell_mut(x, y).shaking_frames += 1;
+                            self.cell_mut(&p).shaking_frames += 1;
                         } else {
                             // 揺らし終わった
-                            if self.cell(x, y).falling_frames < 0 {
+                            if self.cell(&p).falling_frames < 0 {
                                 // 揺らし終わったら落下開始
-                                self.cell_mut(x, y).falling_frames = 0;
-                            } else if self.cell(x, y).falling_frames <= FALL_FRAMES {
-                                self.cell_mut(x, y).falling_frames += 1;
+                                self.cell_mut(&p).falling_frames = 0;
+                            } else if self.cell(&p).falling_frames <= FALL_FRAMES {
+                                self.cell_mut(&p).falling_frames += 1;
                             } else {
                                 // 落下し終わったらセル移動
-                                *self.cell_mut(x, y + 1) = *self.cell(x, y);
-                                self.cell_mut(x, y).cell_type = CellType::None;
-                                self.cell_mut(x, y + 1).fell = true;
+                                let down = self.neighbor(&p, Direction::Down).unwrap();
+                                *self.cell_mut(&down) = *self.cell(&p);
+                                self.cell_mut(&p).cell_type = CellType::None;
+                                self.cell_mut(&down).fell = true;
                             }
                         }
                     }
@@ -520,12 +531,13 @@ impl Game {
     }
 
     // 指定したブロックとつながっているブロックの座標のリストを返す
-    fn get_component(&self, x: i32, y: i32) -> Vec<Point> {
+    fn get_component(&self, p: &Point) -> Vec<Point> {
         let mut result = Vec::new();
         for yi in CELLS_Y_MIN..=CELLS_Y_MAX {
             for xi in CELLS_X_MIN..=CELLS_X_MAX {
-                if self.cell(xi, yi).leader == self.cell(x, y).leader {
-                    result.push(Point::new(xi, yi));
+                let xiyi = Point::new(xi, yi);
+                if self.cell(&xiyi).leader == self.cell(p).leader {
+                    result.push(xiyi);
                 }
             }
         }
@@ -533,31 +545,32 @@ impl Game {
     }
 
     // 指定された箇所を掘る
-    fn dig(&mut self, cell_x: i32, cell_y: i32) {
-        if self.cell(cell_x, cell_y).color == BlockColor::Clear {
+    fn dig(&mut self, p: &Point) {
+        if self.cell(p).color == BlockColor::Clear {
             self.is_clear = true;
             self.requested_sounds.push("clear.wav");
         }
 
-        if self.cell(cell_x, cell_y).color == BlockColor::Brown {
-            self.cell_mut(cell_x, cell_y).block_life -= 25;
+        if self.cell(p).color == BlockColor::Brown {
+            self.cell_mut(p).block_life -= 25;
         } else {
-            self.cell_mut(cell_x, cell_y).block_life = 0;
+            self.cell_mut(p).block_life = 0;
         }
-        if self.cell(cell_x, cell_y).block_life > 0 {
+        if self.cell(p).block_life > 0 {
             return;
         }
-        if self.cell(cell_x, cell_y).color == BlockColor::Brown {
+        if self.cell(p).color == BlockColor::Brown {
             self.player.air = clamp(0, self.player.air - (AIR_MAX as f32 * 0.23) as i32, AIR_MAX);
             self.requested_sounds.push("break_brown.wav");
         }
 
         // つながっているブロックを消去
-        let leader = self.cell(cell_x, cell_y).leader;
+        let leader = self.cell(p).leader;
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if self.cell(x, y).leader == leader {
-                    self.cell_mut(x, y).cell_type = CellType::None;
+                let xy = Point::new(x, y);
+                if self.cell(&xy).leader == leader {
+                    self.cell_mut(&xy).cell_type = CellType::None;
                 }
             }
         }
@@ -567,64 +580,65 @@ impl Game {
     fn set_leaders(&mut self) {
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                self.cell_mut(x, y).leader = None;
+                let p = Point::new(x, y);
+                self.cell_mut(&p).leader = None;
             }
         }
 
         for y in CELLS_Y_MIN..=CELLS_Y_MAX {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if self.cell(x, y).leader == None {
-                    let point = Point::new(x, y);
-                    self.set_leader(x, y, point);
+                let p = Point::new(x, y);
+                if self.cell(&p).leader == None {
+                    self.set_leader(&p, p);
                 }
             }
         }
     }
 
-    fn set_leader(&mut self, x: i32, y: i32, p: Point) {
-        if self.cell(x, y).cell_type != CellType::Block {
+    fn set_leader(&mut self, p: &Point, leader: Point) {
+        if self.cell(&p).cell_type != CellType::Block {
             return;
         }
 
-        self.cell_mut(x, y).leader = Some(p);
+        self.cell_mut(&p).leader = Some(leader);
         let directions = Direction::all();
         for direction in directions {
-            if let Some(neighbor) = self.neighbor(x, y, direction) {
-                if self.cell(neighbor.x, neighbor.y).color == self.cell(x, y).color
-                    && self.cell(neighbor.x, neighbor.y).leader == None
+            if let Some(neighbor) = self.neighbor(&p, direction) {
+                if self.cell(&neighbor).color == self.cell(&p).color
+                    && self.cell(&neighbor).leader == None
                 {
-                    self.set_leader(neighbor.x, neighbor.y, p);
+                    self.set_leader(&neighbor, leader);
                 }
             }
         }
     }
 
-    pub fn neighbor(&self, x: i32, y: i32, direction: Direction) -> Option<Point> {
+    pub fn neighbor(&self, p: &Point, direction: Direction) -> Option<Point> {
         match direction {
             Direction::Left => {
-                if x - 1 >= CELLS_X_MIN {
-                    Some(Point::new(x - 1, y))
+                if p.x - 1 >= CELLS_X_MIN {
+                    Some(Point::new(p.x - 1, p.y))
                 } else {
                     None
                 }
             }
             Direction::Right => {
-                if x + 1 <= CELLS_X_MAX {
-                    Some(Point::new(x + 1, y))
+                if p.x + 1 <= CELLS_X_MAX {
+                    Some(Point::new(p.x + 1, p.y))
                 } else {
                     None
                 }
             }
             Direction::Up => {
-                if y - 1 >= CELLS_Y_MIN {
-                    Some(Point::new(x, y - 1))
+                if p.y - 1 >= CELLS_Y_MIN {
+                    Some(Point::new(p.x, p.y - 1))
                 } else {
                     None
                 }
             }
             Direction::Down => {
-                if y + 1 <= CELLS_Y_MAX {
-                    Some(Point::new(x, y + 1))
+                if p.y + 1 <= CELLS_Y_MAX {
+                    Some(Point::new(p.x, p.y + 1))
                 } else {
                     None
                 }
@@ -632,12 +646,12 @@ impl Game {
         }
     }
 
-    pub fn cell<'a>(&'a self, x: i32, y: i32) -> &'a Cell {
-        &self.cells[y as usize][x as usize]
+    pub fn cell<'a>(&'a self, p: &Point) -> &'a Cell {
+        &self.cells[p.y as usize][p.x as usize]
     }
 
-    fn cell_mut<'a>(&'a mut self, x: i32, y: i32) -> &'a mut Cell {
-        &mut self.cells[y as usize][x as usize]
+    fn cell_mut<'a>(&'a mut self, p: &Point) -> &'a mut Cell {
+        &mut self.cells[p.y as usize][p.x as usize]
     }
 
     pub fn get_depth(&self) -> i32 {
