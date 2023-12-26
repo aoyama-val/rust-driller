@@ -21,8 +21,10 @@ pub const AIR_MAX: i32 = 3000;
 pub const AIR_SPAWN_INTERVAL: i32 = 20;
 pub const BLOCK_LIFE_MAX: i32 = 100;
 
-pub const WALK_FRAMES: i32 = 3; // 1マス歩くのにかかるフレーム数
-pub const FALL_FRAMES: i32 = 3; // 1マス落ちるのにかかるフレーム数
+pub const FPS: i32 = 30;
+pub const WALK_FRAMES: i32 = 3; // プレイヤーが1マス歩くのにかかるフレーム数
+pub const FALL_FRAMES: i32 = 3; // プレイヤーが1マス落ちるのにかかるフレーム数
+pub const SHAKE_FRAMES: i32 = 45; // 落下予定のブロックがぐらついているフレーム数
 
 pub enum Command {
     None,
@@ -76,6 +78,7 @@ pub struct Cell {
     pub leader: Option<Point>, // 同じ色のひとかたまりのリーダー component leader
     pub block_life: i32,
     pub grounded: bool,
+    pub shaking_frames: i32,
 }
 
 impl Cell {
@@ -86,6 +89,7 @@ impl Cell {
             leader: None,
             block_life: BLOCK_LIFE_MAX,
             grounded: false,
+            shaking_frames: -1,
         }
     }
 }
@@ -432,15 +436,22 @@ impl Game {
         // 下からループして
         for y in (CELLS_Y_MIN..=CELLS_Y_MAX).rev() {
             for x in CELLS_X_MIN..=CELLS_X_MAX {
-                if self.cell(x, y).cell_type != CellType::None
-                    && !self.cell(x, y).grounded
-                    && y < CELLS_Y_MAX
-                {
-                    // self.cells[(y + 1][x] = self.cells[y][x];
-                    *self.cell_mut(x, y + 1) = *self.cell(x, y);
-                    self.cell_mut(x, y).cell_type = CellType::None;
-                    // *self.cell_mut(x, y) = *self.cell(x, y - 1);
-                    // self.cell_mut(x, y + 1).color = self.cell(x, y).color;
+                if self.cell(x, y).cell_type != CellType::None {
+                    if !self.cell(x, y).grounded {
+                        // 落下させる前に揺らす
+                        if self.cell(x, y).shaking_frames < 0 {
+                            self.cell_mut(x, y).shaking_frames = 0;
+                        } else {
+                            self.cell_mut(x, y).shaking_frames += 1;
+                        }
+                        // 揺らし終わったら落下
+                        if self.cell(x, y).shaking_frames >= SHAKE_FRAMES {
+                            *self.cell_mut(x, y + 1) = *self.cell(x, y);
+                            self.cell_mut(x, y).cell_type = CellType::None;
+                        }
+                    } else {
+                        self.cell_mut(x, y).shaking_frames = -1;
+                    }
                 }
             }
         }

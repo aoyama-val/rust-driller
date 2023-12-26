@@ -14,8 +14,6 @@ use std::time::{Duration, SystemTime};
 mod model;
 use crate::model::*;
 
-const FPS: u32 = 30;
-
 struct Image<'a> {
     texture: Texture<'a>,
     w: u32,
@@ -117,7 +115,7 @@ pub fn main() -> Result<(), String> {
 
         let finished = SystemTime::now();
         let elapsed = finished.duration_since(started).unwrap();
-        let frame_duration = Duration::new(0, 1_000_000_000u32 / FPS);
+        let frame_duration = Duration::new(0, 1_000_000_000u32 / model::FPS as u32);
         if elapsed < frame_duration {
             ::std::thread::sleep(frame_duration - elapsed)
         }
@@ -194,11 +192,20 @@ fn render(
     for x in CELLS_X_MIN..=CELLS_X_MAX {
         for y in 0..12 {
             let cell_y = game.camera_y + y;
+
+            let shaking = game.cell(x, cell_y).shaking_frames;
+            let offset_x = [0, 1, 2, 1, 0, -1, -2, -1];
+            let offset_x = if shaking >= 0 {
+                offset_x[(shaking as usize) % offset_x.len()]
+            } else {
+                0
+            };
+
             match game.cell(x, cell_y).cell_type {
                 CellType::None => {}
                 CellType::Air => {
                     canvas.filled_ellipse(
-                        ((CELL_SIZE * x) + (CELL_SIZE / 2)) as i16,
+                        ((CELL_SIZE * x) + (CELL_SIZE / 2) + offset_x) as i16,
                         ((CELL_SIZE * y) + (CELL_SIZE / 2)) as i16,
                         (CELL_SIZE / 2) as i16,
                         (CELL_SIZE / 4) as i16,
@@ -221,7 +228,7 @@ fn render(
                         / 100.0
                         * CELL_SIZE as f32) as i32;
                     canvas.fill_rect(Rect::new(
-                        CELL_SIZE as i32 * x,
+                        CELL_SIZE as i32 * x + offset_x,
                         CELL_SIZE as i32 * y + dug_in_px,
                         CELL_SIZE as u32,
                         (CELL_SIZE - dug_in_px) as u32,
