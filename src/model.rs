@@ -195,7 +195,6 @@ pub struct Game {
     pub is_clear: bool,
     pub frame: i32,
     pub player: Player,
-    pub score: i32,
     pub requested_sounds: Vec<&'static str>,
     pub cells: [[Cell; CELLS_X_LEN as usize]; CELLS_Y_LEN as usize],
     pub camera_y: i32,
@@ -220,7 +219,6 @@ impl Game {
             is_clear: false,
             frame: -1,
             player: Player::new(),
-            score: 0,
             requested_sounds: Vec::new(),
             cells: [[Cell::new(); CELLS_X_LEN as usize]; CELLS_Y_LEN as usize],
             camera_y: 0,
@@ -295,7 +293,7 @@ impl Game {
     }
 
     pub fn update(&mut self, command: Command) {
-        self.frame += 1;
+        self.frame += 1; // updateの最初でframeをインクリメント（early returnした場合も増加するように）
 
         if self.is_over || self.is_clear {
             return;
@@ -342,8 +340,6 @@ impl Game {
         }
 
         self.camera_y = self.player.p.y - 5;
-
-        self.score = self.frame / 30;
     }
 
     // 落下や移動中のアニメーション処理
