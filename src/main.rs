@@ -210,15 +210,16 @@ fn render(
         for y in 0..12 {
             let cell_y = game.camera_y + y;
 
-            let shaking = game.cell(x, cell_y).shaking_frames;
-            let falling = game.cell(x, cell_y).falling_frames;
+            let cell = game.cell(x, cell_y);
+            let shaking = cell.shaking_frames;
+            let falling = cell.falling_frames;
             let offset_xs = [0, 1, 2, 1, 0, -1, -2, -1];
-            let offset_x = if shaking >= 0 {
+            let offset_x = if !cell.grounded && shaking >= 0 {
                 offset_xs[(shaking as usize) % offset_xs.len()]
             } else {
                 0
             };
-            let offset_y = if falling >= 0 {
+            let offset_y = if !cell.grounded && falling >= 0 {
                 clamp(
                     0,
                     ((falling as f32 / FALL_FRAMES as f32) * (CELL_SIZE as f32)) as i32,
