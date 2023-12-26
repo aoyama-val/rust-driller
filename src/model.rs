@@ -161,7 +161,7 @@ impl Point {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum PlayerState {
     Standing,
     Walking,
