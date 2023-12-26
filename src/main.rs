@@ -211,7 +211,7 @@ fn render(
         for y in 0..12 {
             let cell_y = game.camera_y + y;
 
-            let cell = game.cell(&Point::new(x, cell_y));
+            let cell = game.cell(Point::new(x, cell_y));
             let shaking = cell.shaking_frames;
             let falling = cell.falling_frames;
             let offset_xs = [0, 1, 2, 1, 0, -1, -2, -1];
@@ -230,7 +230,7 @@ fn render(
                 0
             };
 
-            match game.cell(&Point::new(x, cell_y)).cell_type {
+            match game.cell(Point::new(x, cell_y)).cell_type {
                 CellType::None => {}
                 CellType::Air => {
                     canvas.filled_ellipse(
@@ -242,7 +242,7 @@ fn render(
                     )?;
                 }
                 CellType::Block => {
-                    let color = match game.cell(&Point::new(x, cell_y)).color {
+                    let color = match game.cell(Point::new(x, cell_y)).color {
                         BlockColor::Red => Color::RGB(255, 128, 128),
                         BlockColor::Yellow => Color::RGB(255, 255, 128),
                         BlockColor::Green => Color::RGB(128, 255, 128),
@@ -251,7 +251,7 @@ fn render(
                         BlockColor::Brown => Color::RGB(92, 48, 28),
                     };
                     canvas.set_draw_color(color);
-                    let dug_in_px = ((BLOCK_LIFE_MAX - game.cell(&Point::new(x, cell_y)).block_life)
+                    let dug_in_px = ((BLOCK_LIFE_MAX - game.cell(Point::new(x, cell_y)).block_life)
                         as f32
                         / 100.0
                         * CELL_SIZE as f32) as i32;
