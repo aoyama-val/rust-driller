@@ -8,7 +8,7 @@ pub const SCREEN_WIDTH: i32 = CELL_SIZE * CELLS_X_LEN + INFO_WIDTH;
 pub const SCREEN_HEIGHT: i32 = CELL_SIZE * 12;
 
 pub const UP_SPACE_HEIGHT: i32 = 6; // 初期状態の上の空間の高さ
-pub const NORMAL_BLOCKS_HEIGHT: i32 = 30; // 通常ブロックがある空間の高さ
+pub const NORMAL_BLOCKS_HEIGHT: i32 = 100; // 通常ブロックがある空間の高さ
 pub const CLEAR_BLOCKS_HEIGHT: i32 = 7; // 底にあるクリアブロックの高さ
 pub const CELLS_X_LEN: i32 = 9;
 pub const CELLS_X_MIN: i32 = 0;
@@ -208,8 +208,9 @@ impl Game {
             .duration_since(time::UNIX_EPOCH)
             .expect("SystemTime before UNIX EPOCH!")
             .as_secs();
-        // let rng = StdRng::seed_from_u64(timestamp);
-        let rng = StdRng::seed_from_u64(0);
+        let rng = StdRng::seed_from_u64(timestamp);
+        println!("timestamp (random seed) = {}", timestamp);
+        // let rng = StdRng::seed_from_u64(0);
 
         let mut game = Game {
             rng: rng,
