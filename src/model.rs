@@ -92,6 +92,15 @@ impl Cell {
             shaking_frames: -1,
         }
     }
+
+    fn is_leader(&self, x: i32, y: i32) -> bool {
+        if let Some(leader) = self.leader {
+            if leader.x == x && leader.y == y {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 impl std::fmt::Debug for Cell {
@@ -270,6 +279,8 @@ impl Game {
 
         self.set_leaders();
 
+        self.erase_connected_blocks();
+
         match command {
             Command::Left | Command::Right | Command::Up | Command::Down => {
                 self.dig_or_move(command);
@@ -395,6 +406,22 @@ impl Game {
             _ => return,
         }
         self.print_blocks();
+    }
+
+    // つながっているブロックを消す
+    fn erase_connected_blocks(&mut self) {
+        for y in CELLS_Y_MIN..=CELLS_Y_MAX {
+            for x in CELLS_X_MIN..=CELLS_X_MAX {
+                if self.cell(x, y).is_leader(x, y) {
+                    let component = self.get_component(x, y);
+                    if component.len() >= 4 {
+                        for point in &component {
+                            self.cell_mut(point.x, point.y).cell_type = CellType::None;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // ブロックが接地しているか判定して記録する
