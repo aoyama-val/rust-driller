@@ -24,7 +24,8 @@ pub const BLOCK_LIFE_MAX: i32 = 100;
 pub const FPS: i32 = 30;
 pub const WALK_FRAMES: i32 = 3; // プレイヤーが1マス歩くのにかかるフレーム数
 pub const FALL_FRAMES: i32 = 3; // プレイヤーが1マス落ちるのにかかるフレーム数
-pub const SHAKE_FRAMES: i32 = 45; // 落下予定のブロックがぐらついているフレーム数
+                                // pub const SHAKE_FRAMES: i32 = 48; // 落下予定のブロックがぐらついているフレーム数（揺れるアニメーションが片側4フレームなので、4の倍数）
+pub const SHAKE_FRAMES: i32 = 4; // 落下予定のブロックがぐらついているフレーム数（揺れるアニメーションが片側4フレームなので、4の倍数）
 
 pub enum Command {
     None,
@@ -79,6 +80,7 @@ pub struct Cell {
     pub block_life: i32,
     pub grounded: bool,
     pub shaking_frames: i32,
+    pub falling_frames: i32,
     pub fell: bool, // このフレームに落下したか
 }
 
@@ -91,6 +93,7 @@ impl Cell {
             block_life: BLOCK_LIFE_MAX,
             grounded: false,
             shaking_frames: -1,
+            falling_frames: -1,
             fell: false,
         }
     }
@@ -124,7 +127,12 @@ impl std::fmt::Debug for Cell {
         match self.cell_type {
             CellType::None => write!(f, "None").unwrap(),
             CellType::Air => write!(f, "Air ").unwrap(),
-            CellType::Block => write!(f, "{}({}){:?}", color, grounded, leader).unwrap(),
+            CellType::Block => write!(
+                f,
+                "{}({}){:?} {}",
+                color, grounded, leader, self.falling_frames
+            )
+            .unwrap(),
         };
         Ok(())
     }
@@ -413,7 +421,7 @@ impl Game {
             },
             _ => return,
         }
-        self.print_blocks();
+        // self.print_blocks();
     }
 
     // 落下したブロックが指定個数以上つながったら消す
@@ -457,6 +465,8 @@ impl Game {
                                 let component = self.get_component(x, y);
                                 for point in &component {
                                     self.cell_mut(point.x, point.y).grounded = true;
+                                    self.cell_mut(point.x, point.y).shaking_frames = -1;
+                                    self.cell_mut(point.x, point.y).falling_frames = -1;
                                 }
                             }
                         };
@@ -474,20 +484,26 @@ impl Game {
                 self.cell_mut(x, y).fell = false;
                 if self.cell(x, y).cell_type != CellType::None {
                     if !self.cell(x, y).grounded {
-                        // 落下させる前に揺らす
                         if self.cell(x, y).shaking_frames < 0 {
+                            // 揺らし開始
                             self.cell_mut(x, y).shaking_frames = 0;
-                        } else {
+                        } else if self.cell(x, y).shaking_frames <= SHAKE_FRAMES {
+                            // 揺らし中
                             self.cell_mut(x, y).shaking_frames += 1;
+                        } else {
+                            // 揺らし終わった
+                            if self.cell(x, y).falling_frames < 0 {
+                                // 揺らし終わったら落下開始
+                                self.cell_mut(x, y).falling_frames = 0;
+                            } else if self.cell(x, y).falling_frames <= FALL_FRAMES {
+                                self.cell_mut(x, y).falling_frames += 1;
+                            } else {
+                                // 落下し終わったらセル移動
+                                *self.cell_mut(x, y + 1) = *self.cell(x, y);
+                                self.cell_mut(x, y).cell_type = CellType::None;
+                                self.cell_mut(x, y + 1).fell = true;
+                            }
                         }
-                        // 揺らし終わったら落下
-                        if self.cell(x, y).shaking_frames >= SHAKE_FRAMES {
-                            *self.cell_mut(x, y + 1) = *self.cell(x, y);
-                            self.cell_mut(x, y).cell_type = CellType::None;
-                            self.cell_mut(x, y + 1).fell = true;
-                        }
-                    } else {
-                        self.cell_mut(x, y).shaking_frames = -1;
                     }
                 }
             }
@@ -600,7 +616,7 @@ impl Game {
     }
 }
 
-fn clamp<T: PartialOrd>(min: T, value: T, max: T) -> T {
+pub fn clamp<T: PartialOrd>(min: T, value: T, max: T) -> T {
     if value < min {
         return min;
     }

@@ -199,6 +199,11 @@ fn render(
 ) -> Result<(), String> {
     canvas.set_draw_color(Color::RGB(0, 0, 0));
     canvas.clear();
+    // println!(
+    //     "cell(0, 7) = {:?}, cell(0, 8) = {:?}",
+    //     game.cell(0, 7),
+    //     game.cell(0, 8)
+    // );
 
     // render cells
     for x in CELLS_X_MIN..=CELLS_X_MAX {
@@ -206,9 +211,19 @@ fn render(
             let cell_y = game.camera_y + y;
 
             let shaking = game.cell(x, cell_y).shaking_frames;
-            let offset_x = [0, 1, 2, 1, 0, -1, -2, -1];
+            let falling = game.cell(x, cell_y).falling_frames;
+            let offset_xs = [0, 1, 2, 1, 0, -1, -2, -1];
             let offset_x = if shaking >= 0 {
-                offset_x[(shaking as usize) % offset_x.len()]
+                offset_xs[(shaking as usize) % offset_xs.len()]
+            } else {
+                0
+            };
+            let offset_y = if falling >= 0 {
+                clamp(
+                    0,
+                    ((falling as f32 / FALL_FRAMES as f32) * (CELL_SIZE as f32)) as i32,
+                    CELL_SIZE as i32,
+                )
             } else {
                 0
             };
@@ -218,7 +233,7 @@ fn render(
                 CellType::Air => {
                     canvas.filled_ellipse(
                         ((CELL_SIZE * x) + (CELL_SIZE / 2) + offset_x) as i16,
-                        ((CELL_SIZE * y) + (CELL_SIZE / 2)) as i16,
+                        ((CELL_SIZE * y) + (CELL_SIZE / 2) + offset_y) as i16,
                         (CELL_SIZE / 2) as i16,
                         (CELL_SIZE / 4) as i16,
                         // Color::RGB(209, 220, 230),
@@ -241,7 +256,7 @@ fn render(
                         * CELL_SIZE as f32) as i32;
                     canvas.fill_rect(Rect::new(
                         CELL_SIZE as i32 * x + offset_x,
-                        CELL_SIZE as i32 * y + dug_in_px,
+                        CELL_SIZE as i32 * y + dug_in_px + offset_y,
                         CELL_SIZE as u32,
                         (CELL_SIZE - dug_in_px) as u32,
                     ))?;
